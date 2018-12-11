@@ -1,5 +1,5 @@
 '''
-Exception Classes
+Exception classes for dropbox utilities
 '''
 
 
