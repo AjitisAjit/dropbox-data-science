@@ -45,7 +45,7 @@ def read_csv_from_bytes_io(bytes_io: io.BytesIO, csv_read_config: csv_read_confi
     try:
         validate_columns(df, csv_read_config)
     except (ValueError, AssertionError, AttributeError) as err:
-        raise exceptions.RaiseReaderException(err)
+        raise exceptions.ReaderException(err)
 
     if csv_read_config.output_dataframe_columns:
         df = df.rename(columns=dict(
