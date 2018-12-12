@@ -18,6 +18,14 @@ class ReaderException(DropboxUtilsException):
     pass
 
 
+class FileDownloadException(DropboxUtilsException):
+    '''
+    Exception raised when file download from dropbox
+    fails
+    '''
+    pass
+
+
 class DropboxException(DropboxUtilsException):
     '''
     Exception that occurs during interataction with the

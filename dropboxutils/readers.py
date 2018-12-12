@@ -30,8 +30,7 @@ def read_config(filepath: str) -> configparser.ConfigParser:
     RETURNS:
         config: ConfigParser instance read
     '''
-    dropbox_link = make_file_link(filepath)
-    buffer = download_bytes_io(dropbox_link)
+    buffer = dropbox_to_buffer(filepath)
     config = read_config_from_buffer(buffer)
     return config
 
@@ -70,8 +69,7 @@ def read_csv(filepath: str, csv_read_config: CSVReadConfig) -> pd.DataFrame:
         filepath: Path to the file to be read
         csv_read_config: File configurations for reading the csv file
     '''
-    dropbox_link = make_file_link(filepath)
-    buffer = download_bytes_io(dropbox_link)
+    buffer = dropbox_to_buffer(filepath)
     df = read_csv_from_buffer(buffer, csv_read_config)
     return df
 
@@ -126,13 +124,12 @@ def read_excel(filepath: str, excel_read_config: ExcelReadConfig) -> pd.DataFram
     RETURNS:
         df: Resulting dataframe
     '''
-    dropbox_link = make_file_link(filepath)
-    bytes_io = download_bytes_io(dropbox_link)
-    df = read_csv_from_bytes_io(bytes_io, excel_read_config)
+    buffer = dropbox_to_buffer(filepath)
+    df = read_excel_from_buffer(buffer, excel_read_config)
     return df
 
 
-def read_excel_from_bytes_io(bytes_io: io.BytesIO, excel_read_config: ExcelReadConfig) -> pd.DataFrame:
+def read_excel_from_buffer(buffer: io.BytesIO, excel_read_config: ExcelReadConfig) -> pd.DataFrame:
     '''
     Read excel from a bytes io instance
     ARGS:
@@ -143,7 +140,7 @@ def read_excel_from_bytes_io(bytes_io: io.BytesIO, excel_read_config: ExcelReadC
     '''
     sheet_name = excel_read_config.sheet_name
     header = excel_read_config.header
-    df = pd.read_excel(bytes_io, sheet_name=sheet_name, header=header)
+    df = pd.read_excel(buffer, sheet_name=sheet_name, header=header)
     df.columns = df.columns.astype('str')
     df.columns = df.columns.str.upper()
     expected_cols = excel_read_config.expected_cols
@@ -178,6 +175,24 @@ def validate_columns(df: pd.DataFrame, expected_columns: List):
 
 # Common
 
+def dropbox_to_buffer(filepath: str, read_timeout: int = 10) -> io.BytesIO:
+    '''
+    Download a file from dropbox and read into a buffer
+    ARGS:
+        filepath: Path to file on dropbox to be read
+        timeout: Time to wait for for reading IO data
+    RETURNS:
+        buffer: BytesIO instance of the file read from dropbox
+    '''
+    try:
+        url = make_file_link(filepath)
+        buffer = io.BytesIO(requests.get(url, timout=read_timeout).content)
+    except requests.exceptions.RequestException as err:
+        raise exceptions.FileDownloadException(err)
+
+    return buffer
+
+
 def make_file_link(filepath: str, max_tries: int = 5) -> str:
     '''
     Creates file link for a path on dropbox. The function
@@ -186,6 +201,8 @@ def make_file_link(filepath: str, max_tries: int = 5) -> str:
     ARGS:
         filepath: Path to file on dropbox
         max_tries: Number of tries before failing
+    RETURNS:
+        link: Temporary url to the file
     '''
     tries_count = 0
     while True:
@@ -199,19 +216,3 @@ def make_file_link(filepath: str, max_tries: int = 5) -> str:
                 raise
         else:
             break
-
-
-def download_bytes_io(link: str, read_timeout: int = 10) -> io.BytesIO:
-    '''
-    Dowload data from file link into a bytes io instance
-    ARGS:
-        link: Link to file
-        read_timeout: request timeout
-    RETURNS:
-        filedata: Downloaded data
-    '''
-    try:
-        filedata = io.BytesIO(requests.get(link, timout=read_timeout).content)
-    except requests.exceptions.RequestException as err:
-        raise exceptions.DropboxException(err)
-    return filedata
