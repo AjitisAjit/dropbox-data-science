@@ -22,7 +22,7 @@ LOGGER = logging.getLogger('dropboxutils')
 
 # Config/INI
 
-def read_ini(filepath: str) -> configparser.ConfigParser:
+def read_config(filepath: str) -> configparser.ConfigParser:
     '''
     Read an ini file into a config parser instance
     ARGS:
@@ -31,12 +31,12 @@ def read_ini(filepath: str) -> configparser.ConfigParser:
         config: ConfigParser instance read
     '''
     dropbox_link = make_file_link(filepath)
-    bytes_io = download_bytes_io(dropbox_link)
-    config = read_config_from_bytes_io(bytes_io)
+    buffer = download_bytes_io(dropbox_link)
+    config = read_config_from_buffer(buffer)
     return config
 
 
-def read_config_from_bytes_io(bytes_io: io.BytesIO) -> configparser.ConfigParser:
+def read_config_from_buffer(buffer: io.BytesIO) -> configparser.ConfigParser:
     '''
     Read configuratiojn file from bytes IO instance
     ARGS:
@@ -45,7 +45,8 @@ def read_config_from_bytes_io(bytes_io: io.BytesIO) -> configparser.ConfigParser
         config: ConfigParser instance read
     '''
     config = configparser.ConfigParser()
-    config.read(bytes_io)
+    string = buffer.getvalue().decode('utf8')
+    config.read_string(string)
     return config
 
 
@@ -70,12 +71,12 @@ def read_csv(filepath: str, csv_read_config: CSVReadConfig) -> pd.DataFrame:
         csv_read_config: File configurations for reading the csv file
     '''
     dropbox_link = make_file_link(filepath)
-    bytes_io = download_bytes_io(dropbox_link)
-    df = read_csv_from_bytes_io(bytes_io, csv_read_config)
+    buffer = download_bytes_io(dropbox_link)
+    df = read_csv_from_buffer(buffer, csv_read_config)
     return df
 
 
-def read_csv_from_bytes_io(bytes_io: io.BytesIO, csv_read_config: csv_read_config) -> pd.DataFrame:
+def read_csv_from_buffer(buffer: io.BytesIO, csv_read_config: CSVReadConfig) -> pd.DataFrame:
     '''
     Read CSV from a bytes io instance
     ARGS:
@@ -84,7 +85,8 @@ def read_csv_from_bytes_io(bytes_io: io.BytesIO, csv_read_config: csv_read_confi
     RETURNS:
         df: Resulting pandas dataframe
     '''
-    df = pd.read_csv(bytes_io, sep=csv_read_config.seperator)
+    seperator = csv_read_config.seperator
+    df = pd.read_csv(buffer, sep=seperator)
     df.columns = df.columns.astype('str')
     df.columns = df.columns.str.upper()
     expected_cols = csv_read_config.expected_columns
