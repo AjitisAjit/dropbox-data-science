@@ -1,0 +1,15 @@
+* Dropbox Utilities
+
+
+** Readers
+All readers follow a very simple algorithm: 
+- Convert dropbox path into a link
+- Read the link into a BytesIO instance
+- Use your custom reader, to read from bytes io instance
+
+
+** Writers
+
+
+** Logger
+

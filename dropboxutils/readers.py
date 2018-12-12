@@ -6,9 +6,11 @@ Readers provide functionality for reading various files. These include
 '''
 
 import io
+import logging
+import configparser
+
 from typing import List
 from collections import namedtuple
-import logging
 
 import requests
 import pandas as pd
@@ -18,7 +20,36 @@ from . import core, exceptions
 LOGGER = logging.getLogger('dropboxutils')
 
 
-#CSV:
+# Config/INI
+
+def read_ini(filepath: str) -> configparser.ConfigParser:
+    '''
+    Read an ini file into a config parser instance
+    ARGS:
+        filepath: Path to file to be read
+    RETURNS:
+        config: ConfigParser instance read
+    '''
+    dropbox_link = make_file_link(filepath)
+    bytes_io = download_bytes_io(dropbox_link)
+    config = read_config_from_bytes_io(bytes_io)
+    return config
+
+
+def read_config_from_bytes_io(bytes_io: io.BytesIO) -> configparser.ConfigParser:
+    '''
+    Read configuratiojn file from bytes IO instance
+    ARGS:
+        bytes_io: A bytes io instance
+    RETURNS:
+        config: ConfigParser instance read
+    '''
+    config = configparser.ConfigParser()
+    config.read(bytes_io)
+    return config
+
+
+# CSV:
 
 CSVReadConfig = namedtuple(
     'CSVReadConfig',
