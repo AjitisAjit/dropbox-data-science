@@ -52,7 +52,7 @@ def read_config_from_buffer(buffer: io.BytesIO) -> configparser.ConfigParser:
 # CSV:
 
 def make_csv_read_config(
-        seperator: str = ',',
+        sep: str = ',',
         expected_cols: List = None,
         df_cols: List = None,
         index_col: str = None) -> object:
@@ -60,14 +60,14 @@ def make_csv_read_config(
     CSVReadConfig = namedtuple(
         'CSVReadConfig',
         [
-            'seperator',
+            'sep',
             'expected_cols',
             'df_cols',
             'index_col'
         ]
     )
     return CSVReadConfig(
-        seperator=seperator,
+        sep=sep,
         expected_cols=expected_cols,
         df_cols=df_cols,
         index_col=index_col)
@@ -94,8 +94,8 @@ def read_csv_from_buffer(buffer: io.BytesIO, csv_read_config: object) -> pd.Data
     RETURNS:
         df: Resulting pandas dataframe
     '''
-    seperator = csv_read_config.seperator
-    df = pd.read_csv(buffer, sep=seperator)
+    sep = csv_read_config.sep
+    df = pd.read_csv(buffer, sep=sep)
     df.columns = df.columns.astype('str')
     df.columns = df.columns.str.upper()
     expected_cols = csv_read_config.expected_cols

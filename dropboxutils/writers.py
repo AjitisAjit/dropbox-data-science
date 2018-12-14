@@ -20,7 +20,7 @@ LOGGER = logging.getLogger('dropboxutils')
 # CSV
 
 def make_csv_write_config(
-        seperator=',',
+        sep=',',
         index=False,
         encoding='utf8'
 ):
@@ -28,13 +28,13 @@ def make_csv_write_config(
     CSVWriteConfig = namedtuple(
         'ExcelReadConfig',
         [
-            'seperator=seperator',
+            'sep',
             'index',
             'encoding'
         ]
     )
     return CSVWriteConfig(
-        seperator=seperator,
+        sep=sep,
         index=index,
         encoding=encoding
     )

@@ -24,6 +24,7 @@ def test_df():
 # Tests
 
 def test_write_csv(test_df):
-    buffer = writers.csv_to_buffer(test_df)
+    write_config = writers.make_csv_write_config()
+    buffer = writers.csv_to_buffer(test_df, write_config)
     assert isinstance(buffer, io.StringIO)
-    assert len(buffer.getvalue())
+    assert buffer.getvalue()
