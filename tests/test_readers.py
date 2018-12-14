@@ -45,15 +45,19 @@ def config_buffer():
     return buffer
 
 
+@pytest.fixture(scope='module')
+def excel_buffer(test_df):
+    buffer = io.BytesIO()
+    writer = pd.ExcelWriter(buffer, engine='xlsxwriter')
+    test_df.to_excel(writer)
+    writer.save()
+    return buffer
+
+
 # Tests
 
 def test_read_csv_buffer(csv_buffer):
-    csv_config = readers.CSVReadConfig(
-        seperator=',',
-        expected_columns=None,
-        df_columns=None,
-        index_col=None
-    )
+    csv_config = readers.make_csv_config()
     read_df = readers.read_csv_from_buffer(csv_buffer, csv_config)
     assert not read_df.empty
 
@@ -62,3 +66,9 @@ def test_read_config_buffer(config_buffer):
     config = readers.read_config_from_buffer(config_buffer)
     sections = config.sections()
     assert len(sections) == 1
+
+
+def test_read_excel(excel_buffer):
+    excel_config = readers.make_excel_config()
+    read_df = readers.read_excel_from_buffer(excel_buffer, excel_config)
+    assert not read_df.empty

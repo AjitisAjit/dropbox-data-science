@@ -51,18 +51,29 @@ def read_config_from_buffer(buffer: io.BytesIO) -> configparser.ConfigParser:
 
 # CSV:
 
-CSVReadConfig = namedtuple(
-    'CSVReadConfig',
-    [
-        'seperator',
-        'expected_columns',
-        'df_columns',
-        'index_col'
-    ]
-)
+def make_csv_config(
+        seperator: str = ',',
+        expected_cols: List = None,
+        df_cols: List = None,
+        index_col: str = None) -> object:
+    '''CSV config constructor'''
+    CSVReadConfig = namedtuple(
+        'CSVReadConfig',
+        [
+            'seperator',
+            'expected_cols',
+            'df_cols',
+            'index_col'
+        ]
+    )
+    return CSVReadConfig(
+        seperator=seperator,
+        expected_cols=expected_cols,
+        df_cols=df_cols,
+        index_col=index_col)
 
 
-def read_csv(filepath: str, csv_read_config: CSVReadConfig) -> pd.DataFrame:
+def read_csv(filepath: str, csv_read_config: object) -> pd.DataFrame:
     '''
     Read CSV from a url
     ARGS:
@@ -74,7 +85,7 @@ def read_csv(filepath: str, csv_read_config: CSVReadConfig) -> pd.DataFrame:
     return df
 
 
-def read_csv_from_buffer(buffer: io.BytesIO, csv_read_config: CSVReadConfig) -> pd.DataFrame:
+def read_csv_from_buffer(buffer: io.BytesIO, csv_read_config: object) -> pd.DataFrame:
     '''
     Read CSV from a bytes io instance
     ARGS:
@@ -87,8 +98,8 @@ def read_csv_from_buffer(buffer: io.BytesIO, csv_read_config: CSVReadConfig) -> 
     df = pd.read_csv(buffer, sep=seperator)
     df.columns = df.columns.astype('str')
     df.columns = df.columns.str.upper()
-    expected_cols = csv_read_config.expected_columns
-    df_cols = csv_read_config.df_columns
+    expected_cols = csv_read_config.expected_cols
+    df_cols = csv_read_config.df_cols
 
     if expected_cols is not None:
         validate_columns(df, expected_cols)
@@ -103,19 +114,32 @@ def read_csv_from_buffer(buffer: io.BytesIO, csv_read_config: CSVReadConfig) -> 
 
 # Excel
 
-ExcelReadConfig = namedtuple(
-    'ExcelReadConfig',
-    [
-        'sheet_name',
-        'header',
-        'expected_cols',
-        'df_cols',
-        'index_col',
-    ]
-)
+def make_excel_config(
+        sheet_name: str = 'Sheet1',
+        header: int = 0,
+        expected_cols: List = None,
+        df_cols: List = None,
+        index_col: str = None) -> object:
+    '''Excel config constructor'''
+    ExcelReadConfig = namedtuple(
+        'ExcelReadConfig',
+        [
+            'sheet_name',
+            'header',
+            'expected_cols',
+            'df_cols',
+            'index_col',
+        ]
+    )
+    return ExcelReadConfig(
+        sheet_name=sheet_name,
+        header=header,
+        expected_cols=expected_cols,
+        df_cols=df_cols,
+        index_col=index_col)
 
 
-def read_excel(filepath: str, excel_read_config: ExcelReadConfig) -> pd.DataFrame:
+def read_excel(filepath: str, excel_read_config: object) -> pd.DataFrame:
     '''
     Read Excel from dropbox path
     ARGS:
@@ -129,7 +153,7 @@ def read_excel(filepath: str, excel_read_config: ExcelReadConfig) -> pd.DataFram
     return df
 
 
-def read_excel_from_buffer(buffer: io.BytesIO, excel_read_config: ExcelReadConfig) -> pd.DataFrame:
+def read_excel_from_buffer(buffer: io.BytesIO, excel_read_config: object) -> pd.DataFrame:
     '''
     Read excel from a bytes io instance
     ARGS:
@@ -144,7 +168,7 @@ def read_excel_from_buffer(buffer: io.BytesIO, excel_read_config: ExcelReadConfi
     df.columns = df.columns.astype('str')
     df.columns = df.columns.str.upper()
     expected_cols = excel_read_config.expected_cols
-    df_cols = excel_read_config.df_columns
+    df_cols = excel_read_config.df_cols
 
     if expected_cols is not None:
         validate_columns(df, expected_cols)
