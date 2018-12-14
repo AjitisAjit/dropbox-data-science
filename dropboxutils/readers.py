@@ -22,7 +22,7 @@ LOGGER = logging.getLogger('dropboxutils')
 
 # Config/INI
 
-def read_config(filepath: str) -> configparser.ConfigParser:
+def read_config(dropbox_path: str) -> configparser.ConfigParser:
     '''
     Read an ini file into a config parser instance
     ARGS:
@@ -30,7 +30,7 @@ def read_config(filepath: str) -> configparser.ConfigParser:
     RETURNS:
         config: ConfigParser instance read
     '''
-    buffer = dropbox_to_buffer(filepath)
+    buffer = dropbox_to_buffer(dropbox_path)
     config = read_config_from_buffer(buffer)
     return config
 
@@ -73,14 +73,14 @@ def make_csv_config(
         index_col=index_col)
 
 
-def read_csv(filepath: str, csv_read_config: object) -> pd.DataFrame:
+def read_csv(dropbox_path: str, csv_read_config: object) -> pd.DataFrame:
     '''
     Read CSV from a url
     ARGS:
-        filepath: Path to the file to be read
+        dropbox_path: Path to the file to be read
         csv_read_config: File configurations for reading the csv file
     '''
-    buffer = dropbox_to_buffer(filepath)
+    buffer = dropbox_to_buffer(dropbox_path)
     df = read_csv_from_buffer(buffer, csv_read_config)
     return df
 
@@ -139,16 +139,16 @@ def make_excel_config(
         index_col=index_col)
 
 
-def read_excel(filepath: str, excel_read_config: object) -> pd.DataFrame:
+def read_excel(dropbox_path: str, excel_read_config: object) -> pd.DataFrame:
     '''
     Read Excel from dropbox path
     ARGS:
-        filepath: Path to file on dropbox
+        dropbox_path: Path to file on dropbox
         excel_read_config: Configurations for reading excel files
     RETURNS:
         df: Resulting dataframe
     '''
-    buffer = dropbox_to_buffer(filepath)
+    buffer = dropbox_to_buffer(dropbox_path)
     df = read_excel_from_buffer(buffer, excel_read_config)
     return df
 
@@ -199,17 +199,17 @@ def validate_columns(df: pd.DataFrame, expected_columns: List):
 
 # Common
 
-def dropbox_to_buffer(filepath: str, read_timeout: int = 10) -> io.BytesIO:
+def dropbox_to_buffer(dropbox_path: str, read_timeout: int = 10) -> io.BytesIO:
     '''
     Download a file from dropbox and read into a buffer
     ARGS:
-        filepath: Path to file on dropbox to be read
+        dropbox_path: Path to file on dropbox to be read
         timeout: Time to wait for for reading IO data
     RETURNS:
         buffer: BytesIO instance of the file read from dropbox
     '''
     try:
-        url = make_file_link(filepath)
+        url = make_file_link(dropbox_path)
         buffer = io.BytesIO(requests.get(url, timout=read_timeout).content)
     except requests.exceptions.RequestException as err:
         raise exceptions.FileDownloadException(err)
@@ -217,13 +217,13 @@ def dropbox_to_buffer(filepath: str, read_timeout: int = 10) -> io.BytesIO:
     return buffer
 
 
-def make_file_link(filepath: str, max_tries: int = 5) -> str:
+def make_file_link(dropbox_path: str, max_tries: int = 5) -> str:
     '''
     Creates file link for a path on dropbox. The function
     tries to generate link and retries a few times before
     throwing an exception
     ARGS:
-        filepath: Path to file on dropbox
+        dropbox_path: Path to file on dropbox
         max_tries: Number of tries before failing
     RETURNS:
         link: Temporary url to the file
@@ -232,7 +232,7 @@ def make_file_link(filepath: str, max_tries: int = 5) -> str:
     while True:
         try:
             tries_count += 1
-            link = core.make_file_link(filepath)
+            link = core.make_file_link(dropbox_path)
             return link
         except exceptions.DropboxException as err:
             LOGGER.warning(err)
