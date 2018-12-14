@@ -26,6 +26,13 @@ class FileDownloadException(DropboxUtilsException):
     pass
 
 
+class FileUploadException(DropboxUtilsException):
+    '''
+    Exception raised when file upload to dropbox fails
+    '''
+    pass
+
+
 class DropboxException(DropboxUtilsException):
     '''
     Exception that occurs during interataction with the
