@@ -1,15 +1,27 @@
 * Dropbox Utilities
-
+Wraps around dropbox API and provides functionality for reading and writing 
+various types of files
 
 ** Readers
-All readers follow a very simple algorithm: 
-- Convert dropbox path into a link
-- Read the link into a BytesIO instance
+All readers follow the following algorithm: 
+- Convert dropbox path into a link. A maximum number of attempts 
+  are made to generate the link. After those fail, an exception is raised
+- Read the link into a in-memory buffer, a BytesIO instance
 - Use your custom reader, to read from bytes io instance
-
+The current set readers provide functionality for reading the following types of
+files: 
+- CSV files into pandas dataframes
+- Excel files into pandas dataframes
+- Config/INI files into Configparser instance
 
 ** Writers
-
+All writers follow the following algorithm
+- Write the data to buffer this could be either StringIO or bytesIO
+- Convert this buffer to bytes. In case of string, encode it with propery encoding ('UTF-8')
+- Use the dropbox library to upload to the appropriate location
+- The current set of writers provide functionality for writing the following types of files:
+- Dataframes to csv files
+- Dataframes to excel files
 
 ** Logger
 
