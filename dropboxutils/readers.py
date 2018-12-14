@@ -51,7 +51,7 @@ def read_config_from_buffer(buffer: io.BytesIO) -> configparser.ConfigParser:
 
 # CSV:
 
-def make_csv_config(
+def make_csv_read_config(
         seperator: str = ',',
         expected_cols: List = None,
         df_cols: List = None,
@@ -114,7 +114,7 @@ def read_csv_from_buffer(buffer: io.BytesIO, csv_read_config: object) -> pd.Data
 
 # Excel
 
-def make_excel_config(
+def make_excel_read_config(
         sheet_name: str = 'Sheet1',
         header: int = 0,
         expected_cols: List = None,

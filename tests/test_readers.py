@@ -57,7 +57,7 @@ def excel_buffer(test_df):
 # Tests
 
 def test_read_csv_buffer(csv_buffer):
-    csv_config = readers.make_csv_config()
+    csv_config = readers.make_csv_read_config()
     read_df = readers.read_csv_from_buffer(csv_buffer, csv_config)
     assert not read_df.empty
 
@@ -69,6 +69,6 @@ def test_read_config_buffer(config_buffer):
 
 
 def test_read_excel(excel_buffer):
-    excel_config = readers.make_excel_config()
+    excel_config = readers.make_excel_read_config()
     read_df = readers.read_excel_from_buffer(excel_buffer, excel_config)
     assert not read_df.empty
