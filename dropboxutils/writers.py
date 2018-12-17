@@ -6,6 +6,7 @@ These include
 '''
 
 import  io
+import xlsxwriter
 import time
 import logging
 from typing import List, Dict
@@ -65,6 +66,7 @@ def csv_to_buffer(df: pd.DataFrame, index=False) -> io.StringIO:
     RETURNS:
         buffer: StringIO instance to which the data is written
     '''
+    validate_df(df)
     sep = ','
     buffer = io.StringIO()
     df.to_csv(buffer, sep=sep, index=index)
@@ -73,7 +75,7 @@ def csv_to_buffer(df: pd.DataFrame, index=False) -> io.StringIO:
 
 # Excel
 
-def write_excel(df_list: List[pd.DataFrame], dropbox_path: str, index: bool = False, style_yaml: str = None):
+def write_excel(df_list: List[pd.DataFrame], dropbox_path: str, configfile: str):
     '''
     Write excel file to Dropbox path. An excel file can contain
     multiple sheets, each of the sheets could have different
@@ -82,21 +84,78 @@ def write_excel(df_list: List[pd.DataFrame], dropbox_path: str, index: bool = Fa
         df_list: List of dataframes to be written
         dropbox_path: Path on dropbox to for the excel file to be saved
         index: Whether to include dataframe index in the excel output
-        style_yaml: A yaml file containing formatting information for each sheet in file
+        configfile: A yaml file containing formatting information for each sheet in file
     '''
-    if style_yaml is not None:
-        style_config = parse_style_yaml(style_yaml)
-    else:
-        style_config = None
-
     LOGGER.debug('Writing Excel file to buffer')
-    buffer = excel_to_buffer(df_list, style_config=style_config, index=index)
+    config_list = parse_yaml(configfile)
+    buffer = excel_to_buffer(df_list, config_list)
     bytes_data = buffer.getvalue()
     LOGGER.debug('Uploading excel data to dropbox')
     bytes_to_dropbox(bytes_data, dropbox_path)
 
 
-def parse_style_yaml(path) -> List[Dict]:
+def excel_to_buffer(df_list: List[pd.DataFrame], config_list: List[Dict]) -> io.BytesIO:
+    '''
+    Reads excel data into a buffer
+    ARGS:
+        df_list: List of dataframes to be written to excel file
+        configfile: File containing configurations data
+    '''
+    import pandas.io.formats.excel
+    pandas.io.formats.excel.header_style = None # Ignores header format
+    validate_excel(df_list, config_list)
+    buffer = io.BytesIO()
+    writer = pd.ExcelWriter(buffer, engine='xlsxwriter')
+    for df, sheet_config in zip(df_list, config_list):
+        df_to_sheet(df, sheet_config, writer)
+
+    writer.save()
+    buffer.seek(0)
+    return buffer
+
+
+def validate_excel(df_list: List[pd.DataFrame], config: List[Dict]):
+    '''
+    Validates the dataframes and configurations for
+    writing to excel
+    '''
+    try:
+        assert len(df_list) == (config)
+        map(validate_df, df_list)
+    except AssertionError as err:
+        raise exceptions.WriterException(err)
+
+
+def df_to_sheet(df: pd.DataFrame, sheet_config: Dict, workbook: xlsxwriter.Workbook, writer: pd.ExcelWriter):
+    '''
+    Write dataframe to excel sheet in the buffer
+    '''
+    sheet_name = sheet_config['sheet']
+    worksheet = writer.sheets[sheet_name]
+    rows = sheet_config['rows']
+    cols = sheet_config['columns']
+
+    for row_range_str, fmt in rows.items():
+        style_dict = fmt['style']
+        style_fmt = workbook.add_format(style_dict)
+        height = fmt['height']
+        row_range = make_range(row_range_str)
+        for row_idx in row_range:
+            worksheet.set_row(row_idx, height, style_fmt)
+
+    for col_range_str, fmt in cols.items():
+        style_dict = fmt['style']
+        style_fmt = workbook.add_format(style_dict)
+        width = fmt['width']
+        col_range = make_range(col_range_str)
+        for col_idx in col_range:
+            worksheet.set_column(col_idx, col_idx, width, style_fmt)
+
+    df.to_excel(writer)
+    return writer
+
+
+def parse_yaml(path) -> List[Dict]:
     '''
     Reads and parses yaml file to generate format dictionaries
     for each sheet in the excel file
@@ -108,18 +167,52 @@ def parse_style_yaml(path) -> List[Dict]:
     try:
         with open(path, 'rt') as yaml_fd:
             sheets = list(yaml.load_all(yaml_fd))
-    except IOError as err:
+    except (FileNotFoundError, yaml.YAMLError) as err:
         raise exceptions.ReaderException(err)
     return sheets
 
 
-def excel_to_buffer(df: pd.DataFrame, style_config: object = None, index: bool = None) -> io.BytesIO:
-    pass
-
-
 # Common
 
+def make_range(range_str: str) -> range:
+    '''
+    Create a range from string its string representation
+    . The string representation of range is similar to
+    list slicing in python. The only difference being that
+    both first and last index are considered in range
+    EG:
+        "3:4" => range(3, 5) [Includes 3 and 4]
+    ARGS:
+        range_str: A string representation of range
+    '''
+    try:
+        range_list = list(map(int, range_str.split(':')))
+        assert len(range_list) in  [1, 2]
+        start = range_list[0]
+        end = start + 1 if len(range_list) == 1 else range_list[1] + 1
+        return range(start, end)
+    except (AssertionError, ValueError) as err:
+        raise exceptions.ReaderException('Error parsing range - {} - {}'.format(range_str, err))
+
+
+def validate_df(df: pd.DataFrame):
+    '''
+    Asserts if the dataframe is  valid
+    ARGS:
+        df: Dataframe to be checked
+    '''
+    try:
+        assert isinstance(df, pd.DataFrame)
+        assert not df.empty
+    except AssertionError as err:
+        raise exceptions.WriterException(err)
+
+
 def bytes_to_dropbox(bytes_data: bytes, dropbox_path: str, max_tries: int = 5):
+    '''
+    Tries to upload bytes to a file on dropbox. If the upload fails, the program retries
+    a number of times before raising an exception
+    '''
     tries_count = 0
     while True:
         try:

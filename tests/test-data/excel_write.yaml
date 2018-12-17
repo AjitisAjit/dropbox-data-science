@@ -1,16 +1,20 @@
 # Test excel write configuration
 
 ---
+index: False
+sheet: "Sheet1"
+rows:
+  "0":
+    height:
+    style:
+      text-wrap: True
+      bg_color: "#191970"
+      font-color: "#f2f2f2"
 
-index: False # Use index for excel file
-header_format:
-  text-wrap: True
-  bg_color: #191970
-  font-color: #f2f2f2
-column_format:
-  '0:2':
-    - width: 40
+columns:
+  "0:2":
+    width: 40
+    style:
       text_wrap: False
-      bg_color: #f2f2f2
-
+      bg_color: "#f2f2f2"
 ---
