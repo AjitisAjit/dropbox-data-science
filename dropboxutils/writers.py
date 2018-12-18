@@ -1,17 +1,17 @@
 '''
-Writers provide functionality for writing various files.
+Writers provide functionality for writing various files
 These include
 - CSV
 - Excel
 '''
 
 import  io
-import xlsxwriter
 import time
 import logging
 from typing import List, Dict
 from collections import namedtuple
 
+import xlsxwriter
 import yaml
 import pandas as pd
 from . import core, exceptions
@@ -103,11 +103,16 @@ def excel_to_buffer(df_list: List[pd.DataFrame], config_list: List[Dict]) -> io.
     '''
     import pandas.io.formats.excel
     pandas.io.formats.excel.header_style = None # Ignores header format
+
     validate_excel(df_list, config_list)
     buffer = io.BytesIO()
     writer = pd.ExcelWriter(buffer, engine='xlsxwriter')
+    workbook = writer.book
+
     for df, sheet_config in zip(df_list, config_list):
-        df_to_sheet(df, sheet_config, writer)
+        sheet_name = sheet_config['sheet']
+        df.to_excel(writer, sheet_name=sheet_name, index=sheet_config['index'])
+        df_to_sheet(sheet_config, workbook, writer)
 
     writer.save()
     buffer.seek(0)
@@ -120,13 +125,13 @@ def validate_excel(df_list: List[pd.DataFrame], config: List[Dict]):
     writing to excel
     '''
     try:
-        assert len(df_list) == (config)
+        assert len(df_list) == len(config)
         map(validate_df, df_list)
     except AssertionError as err:
         raise exceptions.WriterException(err)
 
 
-def df_to_sheet(df: pd.DataFrame, sheet_config: Dict, workbook: xlsxwriter.Workbook, writer: pd.ExcelWriter):
+def df_to_sheet(sheet_config: Dict, workbook: xlsxwriter.Workbook, writer: pd.ExcelWriter):
     '''
     Write dataframe to excel sheet in the buffer
     '''
@@ -134,25 +139,62 @@ def df_to_sheet(df: pd.DataFrame, sheet_config: Dict, workbook: xlsxwriter.Workb
     worksheet = writer.sheets[sheet_name]
     rows = sheet_config['rows']
     cols = sheet_config['columns']
+    set_sheet_rows(rows, workbook, worksheet)
+    set_sheet_cols(cols, workbook, worksheet)
 
-    for row_range_str, fmt in rows.items():
+    worksheet.set_zoom(sheet_config['zoom'])
+    if sheet_config.get('frozen_panes', None):
+        frozen_panes_str = sheet_config.get('frozen_panes')
+        frozen_panes = list(map(int, frozen_panes_str.split(','))) #TODO: Find a better solution
+        worksheet.freeze_panes(*frozen_panes)
+
+    return writer
+
+
+def set_sheet_rows(row_dict, book, sheet):
+    '''
+    Formats rows in an excel sheet based on formatting
+    information
+    ARGS:
+        row_dict: A dictionary containing formatting information
+        book: Workbook object associated with xslxwriter
+        sheet: Excel sheet containing rows to be formatted
+    '''
+    for row_range_str, fmt in row_dict.items():
         style_dict = fmt['style']
-        style_fmt = workbook.add_format(style_dict)
+        style_fmt = book.add_format(style_dict)
+
+        if fmt.get('align', None) and fmt.get('align'):
+            style_fmt.set_align('center')
+            style_fmt.set_align('vcenter')
+
         height = fmt['height']
         row_range = make_range(row_range_str)
         for row_idx in row_range:
-            worksheet.set_row(row_idx, height, style_fmt)
+            sheet.set_row(row_idx, height, style_fmt)
 
-    for col_range_str, fmt in cols.items():
+
+def set_sheet_cols(col_dict, book, sheet):
+    '''
+    Formats columns in an excel sheet based on formatting
+    information
+    ARGS:
+        col_dict: A dictionary containing formatting information
+        book: Workbook object associated with xlsxwriter
+        sheet: Excel sheet containing columns to be formatted
+    '''
+    for col_range_str, fmt in col_dict.items():
         style_dict = fmt['style']
-        style_fmt = workbook.add_format(style_dict)
+        style_fmt = book.add_format(style_dict)
+
+        if fmt.get('align', None) and fmt.get('align'):
+            style_fmt.set_align('center')
+            style_fmt.set_align('vcenter')
+
         width = fmt['width']
         col_range = make_range(col_range_str)
         for col_idx in col_range:
-            worksheet.set_column(col_idx, col_idx, width, style_fmt)
-
-    df.to_excel(writer)
-    return writer
+            sheet.set_row(col_idx, width, style_fmt)
 
 
 def parse_yaml(path) -> List[Dict]:

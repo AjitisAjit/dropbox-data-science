@@ -4,8 +4,8 @@ Test writers
 
 #pylint: disable=redefined-outer-name, missing-docstring
 
-import io
 import os
+import io
 import yaml
 
 import pytest
@@ -24,19 +24,12 @@ def test_df():
 
 
 @pytest.fixture(scope='module')
-def yaml_file():
-    yaml_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        'test-data',
-        'excel-write.yaml'
-    )
-    return yaml_path
+def excel_write_config(data_dir):
+    config_file = os.path.join(data_dir, 'excel_write.yaml')
+    with open(config_file, 'rt') as conf:
+        sheet_configs = list(filter(lambda x: x is not None, yaml.load_all(conf)))
 
-
-@pytest.fixture(scope='module')
-def excel_write_config(yaml_file):
-    pass
-
+    return sheet_configs
 
 # Tests
 
@@ -48,4 +41,6 @@ def test_write_csv(test_df):
 
 
 def test_write_excel(test_df, excel_write_config):
-    pass
+    excel_dfs = [test_df] # Since excel file has a single dataframe
+    buffer = writers.excel_to_buffer(excel_dfs, excel_write_config)
+    assert buffer.getvalue()

@@ -2,14 +2,17 @@
 
 ---
 index: False
+zoom: 80
+frozen_panes: "1, 1"
 sheet: "Sheet1"
 rows:
   "0":
+    align: True
     height:
     style:
-      text-wrap: True
+      text_wrap: True
       bg_color: "#191970"
-      font-color: "#f2f2f2"
+      font_color: "#f2f2f2"
 
 columns:
   "0:2":
@@ -17,4 +20,9 @@ columns:
     style:
       text_wrap: False
       bg_color: "#f2f2f2"
+  "3:4":
+    width: 20
+    style:
+      text_wrap: True
+      bg_color: "#aa1100"
 ---
