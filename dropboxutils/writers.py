@@ -9,7 +9,6 @@ import  io
 import time
 import logging
 from typing import List, Dict
-from collections import namedtuple
 
 import xlsxwriter
 import yaml
@@ -21,24 +20,6 @@ LOGGER = logging.getLogger('dropboxutils')
 
 
 # CSV
-
-def make_csv_write_config(
-        sep=',',
-        encoding='utf8'
-):
-    '''CSV config constructor'''
-    CSVWriteConfig = namedtuple(
-        'ExcelReadConfig',
-        [
-            'sep',
-            'encoding'
-        ]
-    )
-    return CSVWriteConfig(
-        sep=sep,
-        encoding=encoding
-    )
-
 
 def write_csv(df, dropbox_path: str, index=False):
     '''
@@ -83,18 +64,16 @@ def write_excel(df_list: List[pd.DataFrame], dropbox_path: str, configfile: str)
     ARGS:
         df_list: List of dataframes to be written
         dropbox_path: Path on dropbox to for the excel file to be saved
-        index: Whether to include dataframe index in the excel output
         configfile: A yaml file containing formatting information for each sheet in file
     '''
     LOGGER.debug('Writing Excel file to buffer')
-    config_list = parse_yaml(configfile)
-    buffer = excel_to_buffer(df_list, config_list)
+    buffer = excel_to_buffer(df_list, configfile)
     bytes_data = buffer.getvalue()
     LOGGER.debug('Uploading excel data to dropbox')
     bytes_to_dropbox(bytes_data, dropbox_path)
 
 
-def excel_to_buffer(df_list: List[pd.DataFrame], config_list: List[Dict]) -> io.BytesIO:
+def excel_to_buffer(df_list: List[pd.DataFrame], configfile: str) -> io.BytesIO:
     '''
     Reads excel data into a buffer
     ARGS:
@@ -104,25 +83,46 @@ def excel_to_buffer(df_list: List[pd.DataFrame], config_list: List[Dict]) -> io.
     import pandas.io.formats.excel
     pandas.io.formats.excel.header_style = None # Ignores header format
 
+    config_list = parse_yaml(configfile)
     validate_excel(df_list, config_list)
     buffer = io.BytesIO()
     writer = pd.ExcelWriter(buffer, engine='xlsxwriter')
-    workbook = writer.book
 
     for df, sheet_config in zip(df_list, config_list):
-        sheet_name = sheet_config['sheet']
-        df.to_excel(writer, sheet_name=sheet_name, index=sheet_config['index'])
-        df_to_sheet(sheet_config, workbook, writer)
+        sheet_name = sheet_config.get('sheet')
+        index = sheet_config.get('index')
+        df.to_excel(writer, sheet_name=sheet_name, index=index)
+        df_to_sheet(sheet_config, writer)
 
     writer.save()
     buffer.seek(0)
     return buffer
 
 
+def parse_yaml(path) -> List[Dict]:
+    '''
+    Reads and parses yaml file to generate format dictionaries
+    for each sheet in the excel file
+    ARGS:
+        path: Path to yaml file to be read
+    RETURNS:
+        sheets: Formatting configurations for each sheet
+    '''
+    try:
+        with open(path, 'rt') as yaml_fd:
+            sheets_cfg = [cfg for cfg in yaml.load_all(yaml_fd) if cfg is not None]
+    except (FileNotFoundError, yaml.YAMLError) as err:
+        raise exceptions.ReaderException(err)
+    return sheets_cfg
+
+
 def validate_excel(df_list: List[pd.DataFrame], config: List[Dict]):
     '''
     Validates the dataframes and configurations for
-    writing to excel
+    writing to excel file
+    ARGS:
+        df_list: List of dataframes to be written
+        config: configurations for each sheet
     '''
     try:
         assert len(df_list) == len(config)
@@ -131,21 +131,27 @@ def validate_excel(df_list: List[pd.DataFrame], config: List[Dict]):
         raise exceptions.WriterException(err)
 
 
-def df_to_sheet(sheet_config: Dict, workbook: xlsxwriter.Workbook, writer: pd.ExcelWriter):
+def df_to_sheet(sheet_config: Dict, writer: pd.ExcelWriter):
     '''
-    Write dataframe to excel sheet in the buffer
+    Write dataframe to excel sheet given a writer instance
+    ARGS:
+        sheet_config: Configurations for writing the sheet
+        writer: xlsxwriter instance to be used
     '''
-    sheet_name = sheet_config['sheet']
+    sheet_name = sheet_config.get('sheet')
+    rows = sheet_config.get('rows')
+    cols = sheet_config.get('columns')
+    workbook = writer.book
     worksheet = writer.sheets[sheet_name]
-    rows = sheet_config['rows']
-    cols = sheet_config['columns']
     set_sheet_rows(rows, workbook, worksheet)
     set_sheet_cols(cols, workbook, worksheet)
 
-    worksheet.set_zoom(sheet_config['zoom'])
+    if sheet_config.get('zoom', None):
+        zoom_level = int(sheet_config.get('zoom')) #TODO: Validate for valueError
+        worksheet.set_zoom(zoom_level)
     if sheet_config.get('frozen_panes', None):
         frozen_panes_str = sheet_config.get('frozen_panes')
-        frozen_panes = list(map(int, frozen_panes_str.split(','))) #TODO: Find a better solution
+        frozen_panes = list(map(int, frozen_panes_str.split(','))) #TODO: Validate for valueError
         worksheet.freeze_panes(*frozen_panes)
 
     return writer
@@ -196,22 +202,6 @@ def set_sheet_cols(col_dict, book, sheet):
         for col_idx in col_range:
             sheet.set_row(col_idx, width, style_fmt)
 
-
-def parse_yaml(path) -> List[Dict]:
-    '''
-    Reads and parses yaml file to generate format dictionaries
-    for each sheet in the excel file
-    ARGS:
-        path: Path to yaml file to be read
-    RETURNS:
-        sheets: Formatting configurations for each sheet
-    '''
-    try:
-        with open(path, 'rt') as yaml_fd:
-            sheets = list(yaml.load_all(yaml_fd))
-    except (FileNotFoundError, yaml.YAMLError) as err:
-        raise exceptions.ReaderException(err)
-    return sheets
 
 
 # Common

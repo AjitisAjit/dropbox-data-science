@@ -26,16 +26,12 @@ def test_df():
 @pytest.fixture(scope='module')
 def excel_write_config(data_dir):
     config_file = os.path.join(data_dir, 'excel_write.yaml')
-    with open(config_file, 'rt') as conf:
-        sheet_configs = list(filter(lambda x: x is not None, yaml.load_all(conf)))
-
-    return sheet_configs
+    return config_file
 
 # Tests
 
 def test_write_csv(test_df):
-    write_config = writers.make_csv_write_config()
-    buffer = writers.csv_to_buffer(test_df, write_config)
+    buffer = writers.csv_to_buffer(test_df, index=False)
     assert isinstance(buffer, io.StringIO)
     assert buffer.getvalue()
 
