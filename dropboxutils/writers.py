@@ -57,7 +57,7 @@ def text_to_buffer(txt: str) -> io.StringIO:
 
 # CSV
 
-def write_csv(df, dropbox_path: str, index: bool = False, ts_path=True):
+def write_csv(df, dropbox_path: str, index: bool = False, ts_path: bool = True):
     '''
     Writes csv file to dropbox. The files are written in utf8 encoding
     ARGS:
@@ -92,7 +92,7 @@ def csv_to_buffer(df: pd.DataFrame, index=False) -> io.StringIO:
 
 # Excel
 
-def write_excel(df_list: List[pd.DataFrame], dropbox_path: str, configfile: str, ts_path: ):
+def write_excel(df_list: List[pd.DataFrame], dropbox_path: str, configfile: str, ts_path: bool = True):
     '''
     Write excel file to Dropbox path. An excel file can contain
     multiple sheets, each of the sheets could have different
@@ -106,7 +106,7 @@ def write_excel(df_list: List[pd.DataFrame], dropbox_path: str, configfile: str,
     buffer = excel_to_buffer(df_list, configfile)
     bytes_data = buffer.getvalue()
     LOGGER.debug('Uploading excel data to dropbox')
-    bytes_to_dropbox(bytes_data, dropbox_path)
+    bytes_to_dropbox(bytes_data, dropbox_path, ts_path=ts_path)
 
 
 def excel_to_buffer(df_list: List[pd.DataFrame], configfile: str) -> io.BytesIO:
