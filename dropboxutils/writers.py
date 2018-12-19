@@ -3,14 +3,16 @@ Writers provide functionality for writing various files
 These include
 - CSV
 - Excel
+- Text
 '''
 
+import os
 import  io
 import time
 import logging
 from typing import List, Dict
+from datetime import datetime
 
-import xlsxwriter
 import yaml
 import pandas as pd
 from . import core, exceptions
@@ -19,9 +21,43 @@ from . import core, exceptions
 LOGGER = logging.getLogger('dropboxutils')
 
 
+# Text
+
+def write_text(txt, dropbox_path: str, ts_path: bool = True):
+    '''
+    Writes text data to a path on dropbox
+    ARGS:
+        txt: Text to be written to a path on dropbox
+        dropbox_path: Path where the text is to be written
+        tc: Boolean indicating whether to timestamp file on dropbox
+    '''
+    encoding = 'utf8'
+    LOGGER.debug('Writing text to buffer')
+    buffer = text_to_buffer(txt)
+    bytes_data = bytes(buffer.getvalue(), encoding)
+    LOGGER.debug('Uploading text data to dropbox')
+    bytes_to_dropbox(bytes_data, dropbox_path, ts_path=ts_path)
+
+
+def text_to_buffer(txt: str) -> io.StringIO:
+    '''
+    Write Text data to a string IO buffer and return the subsequent
+    buffer
+    ARGS:
+        txt: Text to be written
+    '''
+    buffer = io.StringIO()
+    try:
+        with open(buffer, 'wt') as buff:
+            buff.write(txt)
+        return buffer
+    except IOError as err:
+        raise exceptions.WriterException(err)
+
+
 # CSV
 
-def write_csv(df, dropbox_path: str, index=False):
+def write_csv(df, dropbox_path: str, index: bool = False, ts_path=True):
     '''
     Writes csv file to dropbox. The files are written in utf8 encoding
     ARGS:
@@ -34,7 +70,7 @@ def write_csv(df, dropbox_path: str, index=False):
     buffer = csv_to_buffer(df, index=index)
     bytes_data = bytes(buffer.getvalue(), encoding)
     LOGGER.debug('Uploading csv data to dropbox')
-    bytes_to_dropbox(bytes_data, dropbox_path)
+    bytes_to_dropbox(bytes_data, dropbox_path, ts_path=ts_path)
 
 
 def csv_to_buffer(df: pd.DataFrame, index=False) -> io.StringIO:
@@ -56,7 +92,7 @@ def csv_to_buffer(df: pd.DataFrame, index=False) -> io.StringIO:
 
 # Excel
 
-def write_excel(df_list: List[pd.DataFrame], dropbox_path: str, configfile: str):
+def write_excel(df_list: List[pd.DataFrame], dropbox_path: str, configfile: str, ts_path: ):
     '''
     Write excel file to Dropbox path. An excel file can contain
     multiple sheets, each of the sheets could have different
@@ -203,7 +239,6 @@ def set_sheet_cols(col_dict, book, sheet):
             sheet.set_row(col_idx, width, style_fmt)
 
 
-
 # Common
 
 def make_range(range_str: str) -> range:
@@ -240,16 +275,22 @@ def validate_df(df: pd.DataFrame):
         raise exceptions.WriterException(err)
 
 
-def bytes_to_dropbox(bytes_data: bytes, dropbox_path: str, max_tries: int = 5):
+def bytes_to_dropbox(bytes_data: bytes, path: str, max_tries: int = 5, ts_path: bool = True):
     '''
-    Tries to upload bytes to a file on dropbox. If the upload fails, the program retries
-    a number of times before raising an exception
+    Tries to upload bytes to a file on dropbox. If the upload fails,
+    the program retries a number of times before raising an exception
+    ARGS:
+        bytes_data: Data in binary to be written to dropbox
+        path: Path on dropbox where data is to be written
+        max_tries: Maximum number of tries for uploading data before raising an exception
+        ts_path: Whether to timestamp filename for the file to be uploaded
     '''
     tries_count = 0
+    path = timestamp_path(path) if ts_path else path
     while True:
         try:
             tries_count += 1
-            core.upload_to_dropbox(bytes_data, dropbox_path)
+            core.upload_to_dropbox(bytes_data, path)
         except exceptions.DropboxException as err:
             LOGGER.warning(err)
             time.sleep(1)
@@ -257,3 +298,14 @@ def bytes_to_dropbox(bytes_data: bytes, dropbox_path: str, max_tries: int = 5):
                 raise exceptions.FileUploadException(err)
         else:
             break
+
+
+def timestamp_path(path: str) -> str:
+    '''Add timestamp to filename in a path'''
+    filename = os.path.basename(path)
+    now = datetime.utcnow()
+    fmt = '%Y%m%d%h%M%S'
+    now_str = datetime.strftime(now, fmt)
+    dirpath = os.path.dirname(path)
+    path_with_ts = os.path.join(dirpath, now_str + filename)
+    return path_with_ts

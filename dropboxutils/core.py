@@ -15,6 +15,9 @@ TOKEN = os.environ.get('DROPBOX_API_TOKEN')
 
 CLIENT = dropbox.Dropbox(TOKEN)
 
+# Rename path
+
+# List files
 
 def make_file_link(path: str) -> str:
     '''

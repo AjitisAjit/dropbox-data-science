@@ -52,7 +52,7 @@ def read_config_from_buffer(buffer: io.BytesIO) -> configparser.ConfigParser:
 # CSV:
 
 def make_csv_read_config(
-        sep: str = ',',
+        sep: str = ',', # TODO Add header
         expected_cols: List = None,
         df_cols: List = None,
         index_col: str = None) -> object:
