@@ -7,45 +7,54 @@ import os
 import io
 import logging
 from logging.handlers import MemoryHandler
-from . import writers
 
 
 FORMAT = '%(levelname)s - %(asctime)s - %(message)s'
 
 
-class DropboxHandler(MemoryHandler):
+class BufferHandler(MemoryHandler):
     '''
     A memory handler that flushes the log messages to
     a Stream Handler when the capacity is exceeded.
-
-    Level - Timestamp - Log message
     '''
 
-    def __init__(self, path, capacity):
-        self.path = path
-        self.buffer = io.StringIO()
+    def __init__(self, capacity, buffer):
+        self.buffer = buffer
         self.set_target()
         super().__init__(capacity)
 
     def flush(self):
         super().flush()
-        self.write_logs()
-        if self.target is not None:
+        self.reset_target()
+
+    def reset_target(self):
+        '''
+        Resets target handler
+        Closes the target handler regenrating the
+        target handler
+        '''
+        self.buffer = io.StringIO()
+        if hasattr(self, 'target') and self.target is not None:
             self.target.close()
+
         self.set_target()
 
-    def write_logs(self):
-        '''Write logs to dropbox'''
-        data = self.buffer.getvalue() # Get bytes from string IO
-        if data:
-            writers.write_text(data, self.path, ts=True)
-
     def set_target(self):
-        self.buffer = io.StringIO()
+        '''
+        Sets target logger using which logs are written when buffer
+        overflows
+        '''
         formatter = logging.Formatter(FORMAT)
         stream_handler = logging.StreamHandler(self.buffer)
         stream_handler.setFormatter(formatter)
         self.setTarget(stream_handler)
+
+
+class DropboxHandler(BufferHandler):
+    '''
+    Logs to buffer and uploads the result to a path on dropbox
+    '''
+
 
 
 def make_dropbox_handler(logging_dir: str, level: str, capacity: int = 100) -> logging.Handler:
@@ -109,4 +118,3 @@ def silence_dropbox_api_logger(level=logging.WARNING):
     logging.getLogger('dropbox').setLevel(level)
     logging.getLogger('requests').setLevel(level)
     logging.getLogger('urllib3').setLevel(level)
-
