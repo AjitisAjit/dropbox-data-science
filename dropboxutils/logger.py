@@ -6,55 +6,80 @@ Log format is defined as :
 import os
 import io
 import logging
-from logging.handlers import MemoryHandler
+from logging.handlers import BufferingHandler
+from . import writers
 
 
 FORMAT = '%(levelname)s - %(asctime)s - %(message)s'
 
 
-class BufferHandler(MemoryHandler):
+class IOHandler(BufferingHandler):
     '''
-    A memory handler that flushes the log messages to
-    a Stream Handler when the capacity is exceeded.
+    Subclasses buffering handler and flushes the result to
+    a string io instance
     '''
-
-    def __init__(self, capacity, buffer):
-        self.buffer = buffer
-        self.set_target()
+    def __init__(self, capacity):
+        self.memory = io.StringIO()
         super().__init__(capacity)
 
     def flush(self):
-        super().flush()
-        self.reset_target()
-
-    def reset_target(self):
         '''
-        Resets target handler
-        Closes the target handler regenrating the
-        target handler
+        Writes to memory and clears it if the buffer
+        is full or close is called on the logger
+        instance
         '''
-        self.buffer = io.StringIO()
-        if hasattr(self, 'target') and self.target is not None:
-            self.target.close()
+        self.write_memory()
+        self.reset_memory()
 
-        self.set_target()
-
-    def set_target(self):
+    def write_memory(self):
         '''
-        Sets target logger using which logs are written when buffer
-        overflows
+        Writes the messages to a string IO instance in memory
         '''
-        formatter = logging.Formatter(FORMAT)
-        stream_handler = logging.StreamHandler(self.buffer)
-        stream_handler.setFormatter(formatter)
-        self.setTarget(stream_handler)
+        if self.buffer:
+            msg_list = [self.format(rec) for rec in self.buffer]
+            for msg in msg_list:
+                self.memory.write(msg)
+
+    def reset_memory(self):
+        '''Reset string_io instance'''
+        self.memory = io.StringIO()
 
 
-class DropboxHandler(BufferHandler):
+class DropboxHandler(IOHandler):
     '''
-    Logs to buffer and uploads the result to a path on dropbox
+    Subclasses StringIOHandler and flushes the
+    result to a timestamped path on dropbox
     '''
 
+    def __init__(self, capacity, outpath):
+        self.outpath = outpath
+        super().__init__(capacity)
+
+    def flush(self):
+        '''
+        Writes to a timestamped path on dropbox if the
+        buffer is full or close is called
+        '''
+        self.write_memory()
+        encoding = 'utf8'
+        bytes_data = bytes(self.memory.getvalue(), encoding)
+        outpath = writers.timestamp_path(self.outpath)
+        writers.bytes_to_dropbox(bytes_data, outpath)
+        self.reset_memory()
+
+
+def make_stream_handler(stream=None):
+    '''
+    Make StreamHandler instance with appropriate level and formatting
+    information
+    ARGS:
+        stream: Where StreamHandler outputs the result
+    '''
+    formatter = logging.Formatter(FORMAT)
+    stream_handler = logging.StreamHandler(stream=stream)
+    stream_handler.setFormatter(formatter)
+    stream_handler.setLevel(logging.DEBUG)
+    return stream_handler
 
 
 def make_dropbox_handler(logging_dir: str, level: str, capacity: int = 100) -> logging.Handler:
