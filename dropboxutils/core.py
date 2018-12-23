@@ -15,16 +15,13 @@ TOKEN = os.environ.get('DROPBOX_API_TOKEN')
 
 CLIENT = dropbox.Dropbox(TOKEN)
 
-# Rename path
-
-# List files
 
 def make_file_link(path: str) -> str:
     '''
     Make temporary file link for getting files
     from dropbox
     ARGS:
-        dropbox_path: Path to file on dropbox
+        path: Path to file on dropbox
     RETURNS:
         file_link: Temporary file link
     '''
@@ -33,3 +30,17 @@ def make_file_link(path: str) -> str:
     except (requests.exceptions.RequestException, dropbox.exceptions.DropboxException) as err:
         raise exceptions.DropboxException(err)
     return file_link
+
+
+def upload_to_dropbox(data: bytes, path: str, write_mode=dropbox.files.WriteMode('overwrite')):
+    '''
+    Upload bytes data to a path on dropbox
+    ARGS:
+        data: The data in bytes to be uploaded to dropbox
+        path: Path to which the data is to be uploaded
+        write_mode: Determines whether overwritting an existing file is permitted
+    '''
+    try:
+        CLIENT.files_upload(data, path, write_mode)
+    except (dropbox.exceptions.DropboxException, requests.exceptions.RequestException) as err:
+        raise exceptions.DropboxException(err)

@@ -17,28 +17,30 @@ class IOHandler(BufferingHandler):
     '''
     Subclasses buffering handler and flushes the result to
     a string io instance
+    ARGS:
+        capacity: Size of the buffer
     '''
+
     def __init__(self, capacity):
         self.memory = io.StringIO()
         super().__init__(capacity)
 
     def flush(self):
         '''
-        Writes to memory and clears it if the buffer
-        is full or close is called on the logger
-        instance
+        Writes to memory and clears it if the buffer is
+        full or close is called on the logger instance
         '''
-        self.write_memory()
-        self.reset_memory()
+        if self.buffer:
+            self.write_memory()
+            self.reset_memory()
 
     def write_memory(self):
         '''
         Writes the messages to a string IO instance in memory
         '''
-        if self.buffer:
-            msg_list = [self.format(rec) for rec in self.buffer]
-            for msg in msg_list:
-                self.memory.write(msg)
+        msg_list = [self.format(rec) for rec in self.buffer]
+        for msg in msg_list:
+            self.memory.write(msg)
 
     def reset_memory(self):
         '''Reset string_io instance'''
@@ -49,6 +51,9 @@ class DropboxHandler(IOHandler):
     '''
     Subclasses StringIOHandler and flushes the
     result to a timestamped path on dropbox
+    ARGS:
+        outpath: Path on dropbox to which the logs are written
+        capacity: Capacity of the buffer
     '''
 
     def __init__(self, capacity, outpath):
@@ -60,12 +65,19 @@ class DropboxHandler(IOHandler):
         Writes to a timestamped path on dropbox if the
         buffer is full or close is called
         '''
-        self.write_memory()
+        if self.buffer:
+            self.write_memory()
+            self.write_to_dropbox()
+            self.reset_memory()
+
+    def write_to_dropbox(self):
+        '''
+        Writes memory contents to a path on dropbox
+        '''
         encoding = 'utf8'
         bytes_data = bytes(self.memory.getvalue(), encoding)
         outpath = writers.timestamp_path(self.outpath)
         writers.bytes_to_dropbox(bytes_data, outpath)
-        self.reset_memory()
 
 
 def make_stream_handler(stream=None):
