@@ -44,3 +44,16 @@ def upload_to_dropbox(data: bytes, path: str, write_mode=dropbox.files.WriteMode
         CLIENT.files_upload(data, path, write_mode)
     except (dropbox.exceptions.DropboxException, requests.exceptions.RequestException) as err:
         raise exceptions.DropboxException(err)
+
+
+def list_files_shallow(path: str):
+    '''
+    List contents of a folder.
+    ARGS:
+        path: Path on dropbox to be listed
+    '''
+    try:
+        flist = CLIENT.files_list_folder(path)
+    except (dropbox.exceptions.DropboxException, requests.exceptions.RequestException)  as err:
+        raise exceptions.DropboxException('An error occurred getting file contents - {}'.format(err))
+    return flist

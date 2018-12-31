@@ -23,7 +23,6 @@ def app_logger():
 
 def test_logger(app_logger):
     '''Test flushing on the buffering logger'''
-
     capacity = 4
     buff_handler = logger.IOHandler(capacity)
     formatter = logging.Formatter(logger.FORMAT)

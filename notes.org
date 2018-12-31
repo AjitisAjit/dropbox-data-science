@@ -25,3 +25,71 @@ All writers follow the following algorithm
 
 ** Logger
 
+Logger writes bytes data to a path on dropbox
+
+[TBC]
+
+
+
+List file metadata in a folder. The function provides functionality 
+with the following parameters : 
+Arrange by : the order in which the files are retrieved
+recursive: List files recursively or not
+hidden: List hidden files or not
+
+
+
+
+
+
+
+
+
+
+
+Books: 
+
+SICP : Structure and interpretation of computer programs
+
+
+Clean Code: Bob martin
+
+
+Pragmatic programmer
+
+
+Programming : 
+
+Low level: 
+
+1) C++ 
+
+2) Rust
+
+
+Functional Programming : 
+
+Scheme 
+
+Clojure
+
+Haskell *
+
+
+OOP :
+
+1) Smalltalk
+
+2) Java
+
+
+Multiparadigm 
+
+
+1) Python
+
+2) Javascript
+
+3) GO
+
+

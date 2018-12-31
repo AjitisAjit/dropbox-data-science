@@ -11,6 +11,7 @@ import  io
 import time
 import logging
 from typing import List, Dict
+import json
 from datetime import datetime
 
 import yaml
@@ -21,39 +22,46 @@ from . import core, exceptions
 LOGGER = logging.getLogger('dropboxutils')
 
 
-# Text
+# JSON
 
-def write_text(txt, dropbox_path: str, ts_path: bool = True):
+def write_json(config_dict: Dict, dropbox_path: str, ts_path: bool = False):
     '''
-    Writes text data to a path on dropbox
+    Write a dictionary containing configuration data to a dropbox
+    path
+    {
+        'SECTION':
+            'option': 'value'
+             ...
+    }
     ARGS:
-        txt: Text to be written to a path on dropbox
-        dropbox_path: Path where the text is to be written
-        tc: Boolean indicating whether to timestamp file on dropbox
+        config_dict: A dictionary with configuration data
+        dropbox_path: Path on dropbox where the config is to be written
+        ts_path: Boolean indicating whether to timestamp filename
     '''
     encoding = 'utf8'
-    LOGGER.debug('Writing text to buffer')
-    buffer = text_to_buffer(txt)
+    LOGGER.debug('Writing json to buffer')
+    buffer = json_to_buffer(config_dict)
     bytes_data = bytes(buffer.getvalue(), encoding)
-    LOGGER.debug('Uploading text data to dropbox')
+    LOGGER.debug('Uploading config data to dropbox')
     bytes_to_dropbox(bytes_data, dropbox_path, ts_path=ts_path)
 
 
-def text_to_buffer(txt: str) -> io.StringIO:
+def json_to_buffer(config_dict: Dict) -> io.BytesIO:
     '''
-    Write Text data to a string IO buffer and return the subsequent
-    buffer
+    Writes a dictionary containing configuration data
+    to a bytes io instance
+    config_dict is of the following form:
+    {
+        'SECTION':
+            'option': 'value'
+             ...
+    }
     ARGS:
-        txt: Text to be written
+        config_dict: A dictionary containing configurations
     '''
     buffer = io.StringIO()
-    try:
-        with open(buffer, 'wt') as buff:
-            buff.write(txt)
-        return buffer
-    except IOError as err:
-        raise exceptions.WriterException(err)
-
+    json.dump(config_dict, buffer)
+    return buffer
 
 # CSV
 

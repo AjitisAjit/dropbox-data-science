@@ -7,9 +7,9 @@ Readers provide functionality for reading various files. These include
 
 import io
 import logging
-import configparser
+import json
 
-from typing import List
+from typing import List, Dict
 from collections import namedtuple
 
 import requests
@@ -20,39 +20,38 @@ from . import core, exceptions
 LOGGER = logging.getLogger('dropboxutils')
 
 
-# Config/INI
+# JSON
 
-def read_config(dropbox_path: str) -> configparser.ConfigParser:
+def read_json(dropbox_path: str) -> Dict:
     '''
-    Read an ini file into a config parser instance
+    Read an .json file into a config parser instance
     ARGS:
         filepath: Path to file to be read
     RETURNS:
-        config: ConfigParser instance read
+        json_dict: Json read as a dictionary
     '''
     buffer = dropbox_to_buffer(dropbox_path)
-    config = read_config_from_buffer(buffer)
+    config = read_json_from_buffer(buffer)
     return config
 
 
-def read_config_from_buffer(buffer: io.BytesIO) -> configparser.ConfigParser:
+def read_json_from_buffer(buffer: io.BytesIO) -> Dict:
     '''
-    Read configuratiojn file from bytes IO instance
+    Read .json file from bytes IO instance
     ARGS:
         bytes_io: A bytes io instance
     RETURNS:
         config: ConfigParser instance read
     '''
-    config = configparser.ConfigParser()
-    string = buffer.getvalue().decode('utf8')
-    config.read_string(string)
-    return config
+    json_string = buffer.getvalue().decode('utf8')
+    json_dict = json.JSONDecoder().decode(json_string)
+    return json_dict
 
 
 # CSV:
 
 def make_csv_read_config(
-        sep: str = ',', # TODO Add header
+        sep: str = ',',
         expected_cols: List = None,
         df_cols: List = None,
         index_col: str = None) -> object:
