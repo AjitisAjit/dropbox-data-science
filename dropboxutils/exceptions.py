@@ -2,41 +2,28 @@
 Exception classes for dropbox utilities
 '''
 
-class DropboxUtilsException(Exception):
+
+class DropboxException(Exception):
     '''
     Base exception for dropboxutils package
     '''
 
 
-class DropboxException(DropboxUtilsException):
+class DropboxFileError(DropboxException):
     '''
-    Exception that occurs during interataction with the
-    dropbox API
-    '''
-
-
-class ReaderException(DropboxUtilsException):
-    '''
-    Exception that occurs when reading
-    files from dropbox
+    Error occured when reading writing and listing
+    files / directories on dropbox
     '''
 
 
-class WriterException(DropboxUtilsException):
+class DropboxMonitorError(DropboxException):
     '''
-    Exception that occurs when writing file
-    to dropbox
-    '''
-
-
-class FileDownloadException(DropboxUtilsException):
-    '''
-    Exception raised when file download from dropbox
-    fails
+    Error occured when monitoring a dropbox directory
+    for changes
     '''
 
 
-class FileUploadException(DropboxUtilsException):
+class DropboxLoggerError(DropboxException):
     '''
-    Exception raised when file upload to dropbox fails
+    Error logging to dropbox
     '''
