@@ -7,6 +7,8 @@ File operations on dropbox
 
 import os
 import logging
+import posixpath
+
 import requests
 import dropbox
 
@@ -69,7 +71,10 @@ def copy(src: str, dest: str):
 
     Copy file from src to destination on dropbox
     '''
-    pass
+    try:
+        CLIENT.files_copy_v2(src, dest)
+    except Exception as err:
+        exceptions.DropboxFileError(err)
 
 
 def delete(path: str):
@@ -80,7 +85,10 @@ def delete(path: str):
     Delete file from dropbox, if the path is a folder contents of the folder would
     be deleted
     '''
-    pass
+    try:
+        CLIENT.files_delete_v2(path)
+    except Exception as err:
+        exceptions.DropboxFileError(err)
 
 
 def exists(path: str):
@@ -90,4 +98,9 @@ def exists(path: str):
 
     Path to be checked for existence on dropbox
     '''
-    pass
+    folder_path = posixpath.dirname(path)
+    try:
+        entries = CLIENT.files_list_folder(folder_path).entries
+        return any(m.path_lower == path.lower() for m in entries)
+    except Exception as err:
+        raise exceptions.DropboxFileError(err)
