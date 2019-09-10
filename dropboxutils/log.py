@@ -2,9 +2,8 @@
 log.py
 -------
 
-Provides functionality for logging files to a dropbox folder
-If the length of the log file exceeds limit, a new fille is written
-similiar to rotatint file handler
+Provides handlers for logging files to a dropbox. The handlers provided in this module
+are based on FileHandler and rotating file handlers provided by the python distribution
 '''
 
 import io
@@ -41,7 +40,7 @@ class DropboxFileHandler(logging.FileHandler):
 
     def _upload(self):
         binary_data = self.stream.getvalue().encode(self.encoding)
-        files.upload_data(binary_data, self.baseFilename)
+        files.upload(binary_data, self.baseFilename)
 
     def close(self):
         '''
@@ -50,7 +49,6 @@ class DropboxFileHandler(logging.FileHandler):
         '''
         if self.stream:
             try:
-                # self._upload()
                 self.flush()
             finally:
                 stream = self.stream
@@ -104,7 +102,7 @@ class DropboxRotatingFileHandler(DropboxFileHandler):
         '''
 
         if len(self.format(record)) > self.max_bytes:
-            return  # Ignore messages larger than max size
+            return  # Ignores messages larger than max size
 
         try:
             if self.should_rollover(record):
