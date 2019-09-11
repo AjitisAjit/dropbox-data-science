@@ -10,7 +10,7 @@ import os
 import time
 import queue
 import logging
-from typing import List
+from typing import List, Callable
 
 import dropbox
 
@@ -67,3 +67,27 @@ class MonitorListener():
                 self._q.put_nowait(m.path_lower)
             except Exception as err:
                 raise exceptions.DropboxMonitorError(err)
+
+
+class MonitorHandler:
+    '''
+    Attributes:
+        q: Shared queue to that listeners puts filepaths on
+        handler: Function that processes the data from the queue
+
+    Handles paths obtained from a queue in a threadsafe manner
+    '''
+
+    def __init__(self, handler: Callable, q: queue.Queue):
+        self._handler = handler
+        self._q = q
+
+    def watch(self):
+        '''
+        Monitors file queue for changes and calls handler function when a path is
+        enqued
+        '''
+        while True:
+            path = self._q.get()
+            self._handler(path)
+            time.sleep(1)
