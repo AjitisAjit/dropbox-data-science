@@ -4,6 +4,8 @@ import os
 import pytest
 import dropbox
 
+from .. import files
+
 
 @pytest.fixture(scope='session')
 def client():
@@ -14,6 +16,9 @@ def client():
 @pytest.fixture(scope='session')
 def test_directory(client):
     dirpath = '/ai/test'
-    client.files_create_folder_v2(dirpath)
+
+    if not files.exists(dirpath):
+        client.files_create_folder_v2(dirpath)
+
     yield dirpath
     client.files_delete_v2(dirpath)

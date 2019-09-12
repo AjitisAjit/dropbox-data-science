@@ -20,7 +20,7 @@ from . import exceptions
 LOGGER = logging.getLogger('dropboxutils')
 
 
-class MonitorListener():
+class Listener():
     '''
     Attributes:
         q: A shared queue, that the handler also listens to
@@ -30,10 +30,10 @@ class MonitorListener():
     enques the path to the file onto a shared queue
     '''
 
-    def __init__(self, q: queue.Queue, path: str):
+    def __init__(self, path: str, q: queue.Queue):
         try:
             client = dropbox.Dropbox(os.environ.get('DROPBOX_API_TOKEN'))
-            result = client.files_list_folder(path).entries
+            result = client.files_list_folder(path)
         except Exception as err:
             raise exceptions.DropboxMonitorError(err)
 
@@ -59,7 +59,7 @@ class MonitorListener():
 
             self._cursor = result.cursor
             self._flist = [f for f in result.entries if isinstance(f, dropbox.files.FileMetadata)]
-            time.sleep(2)
+            time.sleep(1)
 
     def publish(self, new_files: List):
         for m in new_files:
@@ -69,7 +69,7 @@ class MonitorListener():
                 raise exceptions.DropboxMonitorError(err)
 
 
-class MonitorHandler:
+class Handler:
     '''
     Attributes:
         q: Shared queue to that listeners puts filepaths on
