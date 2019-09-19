@@ -4,8 +4,10 @@ from setuptools import setup, find_packages
 
 setup(
     name='dropboxutils',
-    version='0.1',
+    version='0.11',
     description='dropbox utitities for reading, writing and monitoring files on dropbox',
     packages=find_packages(),
-    tests='tests'
+    tests='tests',
+    install_requires=['requests', 'dropbox']
 )
+i
