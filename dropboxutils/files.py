@@ -8,6 +8,7 @@ File operations on dropbox
 import os
 import logging
 import posixpath
+from typing import List
 
 import requests
 import dropbox
@@ -99,8 +100,22 @@ def exists(path: str):
     Path to be checked for existence on dropbox
     '''
     folder_path = posixpath.dirname(path)
+
     try:
-        entries = CLIENT.files_list_folder(folder_path).entries
+        entries = list_folder(folder_path)
         return any(m.path_lower == path.lower() for m in entries)
+    except Exception as err:
+        raise exceptions.DropboxFileError(err)
+
+
+def list_folder(path: str) -> List:
+    '''
+    ARGS:
+        path: Path to folder
+    RETURNS:
+        List of objects representing contents of folder
+    '''
+    try:
+        return CLIENT.files_list_folder(folder_path).entries
     except Exception as err:
         raise exceptions.DropboxFileError(err)
