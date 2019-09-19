@@ -116,6 +116,6 @@ def list_folder(path: str) -> List:
         List of objects representing contents of folder
     '''
     try:
-        return CLIENT.files_list_folder(folder_path).entries
+        return CLIENT.files_list_folder(path).entries
     except Exception as err:
         raise exceptions.DropboxFileError(err)
