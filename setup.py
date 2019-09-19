@@ -10,4 +10,3 @@ setup(
     tests='tests',
     install_requires=['requests', 'dropbox']
 )
-i
