@@ -14,7 +14,7 @@ from typing import List, Callable
 
 import dropbox
 
-from . import exceptions
+from . import exceptions, files
 
 
 LOGGER = logging.getLogger('dropboxutils')
@@ -32,33 +32,29 @@ class Listener():
 
     def __init__(self, path: str, q: queue.Queue):
         try:
-            client = dropbox.Dropbox(os.environ.get('DROPBOX_API_TOKEN'))
-            result = client.files_list_folder(path)
+            entries, cursor = files.list_folder(path)
         except Exception as err:
             raise exceptions.DropboxMonitorError(err)
 
-        self._client = client
-        self._flist = result.entries
-        self._cursor = result.cursor
+        self._flist = entries
+        self._cursor = cursor
         self._q = q
 
     def watch(self):
         while True:
             try:
-                result = self._client.files_list_folder_continue(self._cursor)
-                new_files = [
-                    f for f in result.entries if
-                    isinstance(f, dropbox.files.FileMetadata) and
-                    not any(o.name == f.name for o in self._flist)
-                ]
-            except Exception as err:
+                changes, new_cursor = files.list_folder_changes(self._cursor)
+            except exceptions.DropboxFileError as err:
                 LOGGER.warning(err)
+
+            self._cursor = new_cursor
+            flist = [f for f in changes if isinstance(f, dropbox.files.FileMetadata)]
+            new_files = [f for f in flist if not any(o.name == f.name for o in self._flist)]
 
             if new_files:
                 self.publish(new_files)
 
-            self._cursor = result.cursor
-            self._flist = [f for f in result.entries if isinstance(f, dropbox.files.FileMetadata)]
+            self._flist = flist
             time.sleep(1)
 
     def publish(self, new_files: List):

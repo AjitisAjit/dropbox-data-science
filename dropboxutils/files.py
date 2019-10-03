@@ -8,7 +8,7 @@ File operations on dropbox
 import os
 import logging
 import posixpath
-from typing import List
+from typing import List, Tuple
 
 import requests
 import dropbox
@@ -102,20 +102,39 @@ def exists(path: str):
     folder_path = posixpath.dirname(path)
 
     try:
-        entries = list_folder(folder_path)
+        entries, _= list_folder(folder_path)
         return any(m.path_lower == path.lower() for m in entries)
     except Exception as err:
         raise exceptions.DropboxFileError(err)
 
 
-def list_folder(path: str) -> List:
+def list_folder(path: str) -> Tuple[List, str]:
     '''
     ARGS:
         path: Path to folder
     RETURNS:
-        List of objects representing contents of folder
+       a pair of list of folder contents and a cursor representing  the current state
     '''
     try:
-        return CLIENT.files_list_folder(path).entries
+        result = CLIENT.files_list_folder(path)
+        cursor = result.cursor
+        flist = result.entries
+        return flist, cursor
+    except Exception as err:
+        raise exceptions.DropboxFileError(err)
+
+
+def list_folder_changes(cursor: str) -> Tuple[List, str]:
+    '''
+    ARGS:
+        cursor: The cursor to the folder who's state is to be calculated
+    RETURNS:
+        a pair of list of folder changes and a new cursor
+    '''
+    try:
+        result = CLIENT.files_list_folder_continue(cursor)
+        cursor = result.cursor
+        flist = result.entries
+        return flist, cursor
     except Exception as err:
         raise exceptions.DropboxFileError(err)
