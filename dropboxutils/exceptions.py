@@ -11,15 +11,16 @@ class DropboxException(Exception):
 
 class DropboxFileError(DropboxException):
     '''
-    Error occured when reading writing and listing
-    files / directories on dropbox
+    Error occured when reading writing or listing
+    files
     '''
 
 
-class DropboxMonitorError(DropboxException):
+class DropboxFolderError(DropboxException):
     '''
-    Error occured when monitoring a dropbox directory
-    for changes
+    Errors when reading, writing or listing
+    folder contents
+
     '''
 
 
