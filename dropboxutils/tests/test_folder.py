@@ -33,7 +33,6 @@ class TestUpdateFolder:
         folder_instance.update()
         c1 = folder_instance.cursor
         flist_1 = folder_instance.flist
-        print(flist_1)
 
         # Move a file
         folder_path = folder_instance.path
@@ -50,7 +49,6 @@ class TestUpdateFolder:
         folder_instance.update()
         c2 = folder_instance.cursor
         flist_2 = folder_instance.flist
-        print(flist_2)
 
         assert set(flist_1) - set(flist_2) == set([first])
         assert c1 != c2
