@@ -20,11 +20,10 @@ class DropboxFolderError(DropboxException):
     '''
     Errors when reading, writing or listing
     folder contents
-
     '''
 
 
-class DropboxLoggerError(DropboxException):
+class DropboxMonitorError(DropboxException):
     '''
-    Error logging to dropbox
+    Errors when monitoring folder for activity
     '''
