@@ -88,8 +88,19 @@ class Base:
     def __eq__(self, other):
         return self.path == other.path
 
+    def __lt__(self, other):
+        return self.path < other.path
+
     def __hash__(self):
         return int(hashlib.md5(self._file.encode('utf8')).hexdigest(), 16)
+
+    def __repr__(self):
+        return '{class_name}(path={path}, last_modified={last_modified}, content_hash={content_hash})'.format(
+            class_name=self.__class__.__name__,
+            path=self.path,
+            last_modified=self.last_modified,
+            content_hash=self.content_hash
+        )
 
     @property
     def path(self) -> str:
