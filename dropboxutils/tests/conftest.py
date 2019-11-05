@@ -77,4 +77,4 @@ def dropbox_file(folder_instance, api_token) -> Callable:
 
         return {'file': file_instance, 'data': original_data, 'payload': bytes_data}
 
-    return make_dropbox_file
+    yield make_dropbox_file

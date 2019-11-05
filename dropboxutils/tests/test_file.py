@@ -44,7 +44,13 @@ def excel_config():
     ]
 
 
-class TestDropboxTextFile:
+class TestDropboxFile:
+
+    def test_upload(self, dropbox_file):
+        text_data = dropbox_file('test.txt')
+        text_payload = text_data['payload']
+        text_file = text_data['file']
+        text_file.upload(text_payload, timestamp=True)
 
     def test_download(self, dropbox_file, csv_config, excel_config):
         text_data = dropbox_file('test.txt')
@@ -62,34 +68,26 @@ class TestDropboxTextFile:
         excel_payload = excel_data['payload']
         excel_original = excel_data['data']
 
-        try:
-            text_file.upload(text_payload)
-            csv_file.upload(csv_payload)
-            excel_file.upload(excel_payload)
-            text_downloaded = text_file.download()
-            csv_downloaded = csv_file.download(csv_config)
-            excel_downloaded = excel_file.download(excel_config)
-            assert text_downloaded == text_original
-            assert csv_downloaded.equals(csv_original)
-            assert excel_downloaded.equals(excel_original)
-        finally:
-            text_file.delete()
-            csv_file.delete()
-            excel_file.delete()
+        text_file.upload(text_payload)
+        csv_file.upload(csv_payload)
+        excel_file.upload(excel_payload)
+        text_downloaded = text_file.download()
+        csv_downloaded = csv_file.download(csv_config)
+        excel_downloaded = excel_file.download(excel_config)
+        assert text_downloaded == text_original
+        assert csv_downloaded.equals(csv_original)
+        assert excel_downloaded.equals(excel_original)
 
     def test_move(self, dropbox_file):
         text_data = dropbox_file('test.txt')
         text_file = text_data['file']
         text_payload = text_data['payload']
 
-        try:
-            text_file.upload(text_payload)
-            path = text_file.path
-            new_path = posixpath.join(posixpath.dirname(path), 'test_2')
-            text_file.move(new_path)
-            assert text_file.path == new_path
-        finally:
-            text_file.delete()
+        text_file.upload(text_payload)
+        path = text_file.path
+        new_path = posixpath.join(posixpath.dirname(path), 'test_2')
+        text_file.move(new_path)
+        assert text_file.path == new_path
 
     def test_copy(self, dropbox_file, api_token):
         text_data = dropbox_file('test.txt')
@@ -101,23 +99,16 @@ class TestDropboxTextFile:
         new_path = posixpath.join(posixpath.dirname(path), 'test_2')
         new_file = file.make_dropbox_file(new_path, api_token)
 
-        try:
-            text_file.copy(new_path)
-            assert text_file.exists()
-            assert new_file.exists()
-        finally:
-            text_file.delete()
-            new_file.delete()
+        text_file.copy(new_path)
+        assert text_file.exists()
+        assert new_file.exists()
 
     def test_get_props(self, dropbox_file):
         text_data = dropbox_file('test.txt')
         text_file = text_data['file']
         text_payload = text_data['payload']
 
-        try:
-            text_file.upload(text_payload)
-            assert isinstance(text_file.path, str)
-            assert isinstance(text_file.content_hash, str)
-            assert isinstance(text_file.last_modified, datetime.datetime)
-        finally:
-            text_file.delete()
+        text_file.upload(text_payload)
+        assert isinstance(text_file.path, str)
+        assert isinstance(text_file.content_hash, str)
+        assert isinstance(text_file.last_modified, datetime.datetime)

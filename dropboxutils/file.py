@@ -9,6 +9,7 @@ import re
 import os
 import io
 import hashlib
+import datetime
 import posixpath
 from functools import reduce
 from dataclasses import dataclass
@@ -20,6 +21,13 @@ import pandas as pd
 
 from .exceptions import DropboxFileError
 
+
+# Constants
+
+TIME_FORMAT = '%Y%m%d_%H:%M'
+
+
+# Classes
 
 DateTime = NewType('datetime.datetime', object)
 
@@ -132,9 +140,13 @@ class Base:
             else:
                 raise DropboxFileError(err)
 
-    def upload(self, data: bytes):
+    def upload(self, data: bytes, timestamp: bool = False):
         try:
-            self._client.files_upload(data, self._file, mode=WriteMode)
+            path = posixpath.join(
+                posixpath.dirname(self._file),
+                datetime.datetime.utcnow().strftime(TIME_FORMAT) + posixpath.basename(self._file)
+            ) if timestamp is True else self._file
+            self._client.files_upload(data, path, mode=WriteMode)
         except Exception as err:
             raise DropboxFileError(err)
 
