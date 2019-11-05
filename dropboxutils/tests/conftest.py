@@ -21,7 +21,7 @@ def client(api_token):
     return dropbox.Dropbox(api_token)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='function')
 def folder_instance(api_token):
     dirpath = '/ai/test'
     folder_obj = folder.DropboxFolder(dirpath, api_token)
@@ -32,7 +32,7 @@ def folder_instance(api_token):
 
 # File factory
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='function')
 def dropbox_file(folder_instance, api_token) -> Callable:
 
     def make_dropbox_file(filename) -> Dict:

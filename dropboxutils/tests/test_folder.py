@@ -2,29 +2,90 @@
 Test dropbox folder operations
 '''
 
-from .. import folder, file
+import posixpath
+from .. import file, folder
 
 
-def test_update(folder_instance, dropbox_file):
+class TestUpdateFolder:
 
-    folder_instance.update()
-    assert isinstance(folder_instance.cursor, str)
-    assert isinstance(folder_instance.flist, list)
-    assert not folder_instance.flist
-    c1 = folder_instance.cursor
+    def test_add_files(self, folder_instance, dropbox_file):
+        folder_instance.update()
+        assert isinstance(folder_instance.cursor, str)
+        assert isinstance(folder_instance.flist, list)
+        flist_1 = folder_instance.flist
+        c1 = folder_instance.cursor
 
-    upload_files(dropbox_file)
-    folder_instance.update()
-    assert isinstance(folder_instance.cursor, str)
-    assert folder_instance.cursor != c1
+        upload_files(dropbox_file)
+        folder_instance.update()
+        flist_2 = folder_instance.flist
+        c2 = folder_instance.cursor
 
-    assert isinstance(folder_instance.flist, list)
-    class_list = [f.__class__.__name__ for f in folder_instance.flist]
-    assert sorted(class_list) == sorted([
-        file.DropboxTextFile.__name__,
-        file.DropboxCsvFile.__name__,
-        file.DropboxExcelFile.__name__
-    ])
+        assert c1 != c2
+        assert flist_1 == []
+        assert sorted(list(map(lambda f: f.__class__.__name__, flist_2))) == sorted([
+            file.DropboxTextFile.__name__,
+            file.DropboxCsvFile.__name__,
+            file.DropboxExcelFile.__name__
+        ])
+
+    def test_move_files(self, folder_instance, dropbox_file):
+        upload_files(dropbox_file)
+        folder_instance.update()
+        c1 = folder_instance.cursor
+        flist_1 = folder_instance.flist
+        print(flist_1)
+
+        # Move a file
+        folder_path = folder_instance.path
+        new_folder_path = posixpath.join(folder_path, 'old')
+        new_folder = folder.DropboxFolder(new_folder_path)
+        new_folder.create()
+
+        # Pick a random file and move it there
+        first, *rest = flist_1
+        first_path = first.path
+        new_path = posixpath.join(new_folder_path, posixpath.basename(first_path))
+        first.move(new_path)
+
+        folder_instance.update()
+        c2 = folder_instance.cursor
+        flist_2 = folder_instance.flist
+        print(flist_2)
+
+        assert set(flist_1) - set(flist_2) == set([first])
+        assert c1 != c2
+
+    def test_delete_file(self, folder_instance, dropbox_file):
+        upload_files(dropbox_file)
+        folder_instance.update()
+        c1 = folder_instance.cursor
+        flist_1 = folder_instance.flist
+
+        first, *rest = flist_1
+        first.delete()
+
+        folder_instance.update()
+        c2 = folder_instance.cursor
+        flist_2 = folder_instance.flist
+
+        assert set(flist_1) - set(flist_2) == set([first])
+        assert c1 != c2
+
+    def test_update_file(self, folder_instance, dropbox_file):
+        upload_files(dropbox_file)
+        folder_instance.update()
+        c1 = folder_instance.cursor
+        flist_1 = folder_instance.flist
+
+        first, *rest = flist_1
+        first.upload(b'modified content')
+
+        folder_instance.update()
+        c2 = folder_instance.cursor
+        flist_2 = folder_instance.flist
+
+        assert set(flist_1) - set(flist_2) == set()
+        assert c1 != c2
 
 
 def upload_files(dropbox_file):

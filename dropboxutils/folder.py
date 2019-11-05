@@ -4,6 +4,7 @@ state
 '''
 
 import os
+import posixpath
 from typing import Optional, List, Tuple
 
 import dropbox
@@ -28,8 +29,8 @@ class DropboxFolder:
         self._api_token = api_token if api_token is not None else os.environ.get('DROPBOX_API_TOKEN')
         self._client = dropbox.Dropbox(self._api_token)
         self._folder = folder.path_lower if isinstance(folder, dropbox.files.FileMetadata) else folder
-        self._cursor = None
-        self._flist = None
+        self._cursor = ''
+        self._flist = []
 
     @property
     def path(self):
@@ -50,13 +51,10 @@ class DropboxFolder:
             raise DropboxFolderError(err)
 
     def update(self) -> None:
-        if self._cursor is None and self._flist is None:
-            self._cursor, self._flist = self._get_changes_from_path()
-        else:
-            cursor, changes = self._get_changes_from_cursor()
-            total_files = list(set(self._flist).union(changes))
-            self._flist = total_files
-            self._cursor = cursor
+        cursor, changes = self._get_changes_from_path() if self._cursor == '' else self._get_changes_from_cursor()
+        flist = self._get_files(changes)
+        self._flist = flist
+        self._cursor = cursor
 
     def delete(self) -> None:
         try:
@@ -67,20 +65,21 @@ class DropboxFolder:
     def _get_changes_from_cursor(self) -> Tuple[str, List]:
         try:
             result = self._client.files_list_folder_continue(self._cursor)
+            return result.cursor, result.entries
         except Exception as err:
             raise DropboxFolderError(err)
-
-        files = self._get_files(result.entries)
-        return result.cursor, files
 
     def _get_changes_from_path(self) -> Tuple[str, List]:
         try:
             contents = self._client.files_list_folder(self._folder)
+            return contents.cursor, contents.entries
         except Exception as err:
             raise DropboxFolderError(err)
 
-        files = self._get_files(contents.entries)
-        return contents.cursor, files
-
-    def _get_files(self, files: List) -> List:
-        return [make_dropbox_file(f, self._api_token) for f in files if isinstance(f, dropbox.files.FileMetadata)]
+    def _get_files(self, folder_contents: List) -> List:
+        # Folders and Moved or deleted files are ignored. Files within subfolders are also ignored
+        files = [f for f in folder_contents if isinstance(f, dropbox.files.FileMetadata)]
+        deleted_paths = [f.path_lower for f in folder_contents if isinstance(f, dropbox.files.DeletedMetadata)]
+        file_changes = [make_dropbox_file(f, self._api_token) for f in files if self._folder == posixpath.dirname(f.path_lower)]
+        files_left = [f for f in self._flist if f.path not in deleted_paths and posixpath.dirname(f.path) == self.path]
+        return list(set(files_left).union(file_changes))
