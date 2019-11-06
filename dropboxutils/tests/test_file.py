@@ -6,6 +6,7 @@ import datetime
 import posixpath
 
 import pytest
+import pandas as pd
 
 from .. import file
 
@@ -73,10 +74,14 @@ class TestDropboxFile:
         excel_file.upload(excel_payload)
         text_downloaded = text_file.download()
         csv_downloaded = csv_file.download(csv_config)
+
         excel_downloaded = excel_file.download(excel_config)
+        first, second = excel_downloaded
+        merged_df = first.merge(second, left_index=True, right_index=True, how='outer')
+
+        assert merged_df.equals(excel_original)
         assert text_downloaded == text_original
         assert csv_downloaded.equals(csv_original)
-        assert excel_downloaded.equals(excel_original)
 
     def test_move(self, dropbox_file):
         text_data = dropbox_file('test.txt')

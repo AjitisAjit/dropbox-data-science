@@ -221,8 +221,7 @@ class DropboxExcelFile(Base):
     def download(self, sheet_config_list: List[ExcelSheetConfig]) -> pd.DataFrame:
         data = super().download()
         buffer = io.BytesIO(data)
-        df_map = map(lambda c: self._read_sheet(buffer, c), sheet_config_list)
-        return reduce(lambda df1, df2: pd.merge(df1, df2, left_index=True, right_index=True), df_map)
+        return list(map(lambda c: self._read_sheet(buffer, c), sheet_config_list))
 
     @staticmethod
     def _read_sheet(buffer, config: ExcelSheetConfig) -> pd.DataFrame:
