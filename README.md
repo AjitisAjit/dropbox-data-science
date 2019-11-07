@@ -23,8 +23,9 @@ ExcelSheetconfig (
 
 CsvConfig (
     header: int,
-    cols: List[int]
-    col_names: Dict[str],
+    cols: List[int],
+    col_names: Dict[str]
+)
 ```
 
 ## Folder
@@ -32,7 +33,7 @@ CsvConfig (
 `DropboxFolder` hold list of files objects described above as state. An
 `update()` call updates the state of the folder
 
-# Monitor
+## Monitor
 
 A simple monitor the emits an event when the contents of a folder
 are modified
