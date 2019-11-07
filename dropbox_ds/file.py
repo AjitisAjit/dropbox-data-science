@@ -37,19 +37,19 @@ WriteMode = dropbox.files.WriteMode('overwrite')  # Files are always overwritten
 
 @dataclass
 class ExcelSheetConfig:
-    sheet_name: str
-    header: int
-    cols: Optional[List[int]]
-    col_names: Optional[Dict]
-    index_col_name: Optional[str]
+    sheet_name: str = 'Sheet1'
+    header: int = 0
+    cols: Optional[List[int]] = None
+    col_names: Optional[Dict] = None
+    index_col_name: Optional[str] = None
 
 
 @dataclass
 class CsvConfig:
-    header: int
-    col_names: Optional[Dict]
-    cols: Optional[List[int]]
-    index_col_name: Optional[str]
+    header: int = 0
+    col_names: Optional[Dict] = None
+    cols: Optional[List[int]] = None
+    index_col_name: Optional[str] = None
 
 
 # FileFactory
