@@ -14,7 +14,7 @@ setuptools.setup(
     description='Provides data science utilities for dropbox',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    packages=setuptools.find_packages(),
+    packages=['dropbox_ds'],
     tests='dropbox_ds/tests',
     classifiers=[
         "Programming Language :: Python :: 3.7",
