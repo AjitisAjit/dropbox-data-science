@@ -1,12 +1,20 @@
 '''Setup script'''
 
-from setuptools import setup, find_packages
+import setuptools
 
-setup(
-    name='dropboxutils',
-    version='0.51',
-    description='dropbox utitities for reading, writing and monitoring files on dropbox',
-    packages=find_packages(),
+
+with open('README.md', 'r') as f:
+    long_description = f.read()
+
+
+setuptools.setup(
+    name='dropbox-ds-AJIT-NATH',
+    version='0.5.1',
+    author='Ajit Nath',
+    description='Provides data science utilities for dropbox',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    packages=setuptools.find_packages(),
     tests='tests',
-    install_requires=['requests', 'dropbox']
+    python_requires='>=3.7'
 )

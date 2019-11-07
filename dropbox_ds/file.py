@@ -11,7 +11,6 @@ import io
 import hashlib
 import datetime
 import posixpath
-from functools import reduce
 from dataclasses import dataclass
 from typing import Optional, NewType, Union, List, Dict
 
@@ -40,8 +39,8 @@ WriteMode = dropbox.files.WriteMode('overwrite')  # Files are always overwritten
 class ExcelSheetConfig:
     sheet_name: str
     header: int
-    col_names: Optional[Dict]
     cols: Optional[List[int]]
+    col_names: Optional[Dict]
     index_col_name: Optional[str]
 
 
