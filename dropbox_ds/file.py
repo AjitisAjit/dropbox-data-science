@@ -26,13 +26,6 @@ from .exceptions import DropboxFileError
 TIME_FORMAT = '%Y%m%d_%H:%M'
 
 
-# Classes
-
-DateTime = NewType('datetime.datetime', object)
-
-WriteMode = dropbox.files.WriteMode('overwrite')  # Files are always overwritten on dropbox
-
-
 # Dataclasses
 
 @dataclass
@@ -52,9 +45,20 @@ class CsvConfig:
     index_col_name: Optional[str] = None
 
 
+# Classes
+
+DateTime = NewType('datetime.datetime', object)
+
+File = Union[DropboxExcelFile, DropboxCsvFile, DropboxTextFile]
+
+ReadConfig = Union[List[ExcelSheetConfig], CsvConfig]
+
+WriteMode = dropbox.files.WriteMode('overwrite')  # Files are always overwritten on dropbox
+
+
 # FileFactory
 
-def make_dropbox_file(file: Union[str, dropbox.files.FileMetadata], api_token: Optional[str] = None):
+def make_dropbox_file(file: Union[str, dropbox.files.FileMetadata], api_token: Optional[str] = None) -> File:
     '''
     ARGS:
         file: A metadata object or filepath
@@ -131,23 +135,28 @@ class Base:
 
     @property
     def path(self) -> str:
+        '''
+        Full filepath in lowercase
+        '''
         return self._path
 
     @property
     def last_modified(self) -> DateTime:
-        if self._last_modified is not None:
-            return self._last_modified
-        else:
+        '''
+        Last edited by the client
+        '''
+        if self._last_modified is None:
             self.update_metadata()
-            return self._last_modified
+        return self._last_modified
 
     @property
     def content_hash(self):
-        if self._content_hash is not None:
-            return self._content_hash
-        else:
+        '''
+        Hash of the file contents sha256
+        '''
+        if self._content_hash is None:
             self.update_metadata()
-            return self._last_modified
+        return self._last_modified
 
     def exists(self) -> bool:
         '''
@@ -212,18 +221,34 @@ class Base:
             DropboxFileError(err)
 
     def copy(self, dest: str) -> None:
+        '''
+        ARGS:
+            dest: Destination full path
+
+        Create a copy of the file at destination. File path remains unchanged
+        '''
         try:
             self._client.files_copy_v2(self._path, dest)
         except Exception as err:
             DropboxFileError(err)
 
     def delete(self):
+        '''
+        Delete file from dropbox
+        '''
         try:
             self._client.files_delete_v2(self._path)
         except Exception as err:
             DropboxFileError(err)
 
     def update_metadata(self, path=None):
+        '''
+        ARGS:
+           path: (optional) new path to file
+
+        Update metadata properties of the file. If the path is set,
+        it is considered as filepath
+        '''
         try:
             self._path = path if path is not None else self._path
             metadata = self._client.files_get_metadata(self._path)
@@ -243,7 +268,10 @@ class DropboxTextFile(Base):
         self._encoding = encoding
         super().__init__(*args, **kwargs)
 
-    def download(self):
+    def download(self) -> str:
+        '''
+        Returns the string with set encoding
+        '''
         data = super().download()
         return data.decode(self._encoding)
 
@@ -258,6 +286,12 @@ class DropboxCsvFile(Base):
         super().__init__(*args, *kwargs)
 
     def download(self, csv_config: CsvConfig) -> pd.DataFrame:
+        '''
+        ARGS:
+            csv_config: Instance of CsvConfig containing table information
+
+        Returns a pandas dataframe with set encoding
+        '''
         data = super().download()
         buffer = io.StringIO(data.decode(self._encoding))
         return self._read_file(buffer, csv_config)
@@ -279,7 +313,13 @@ class DropboxExcelFile(Base):
     Excel file as a list of dataframes
     '''
 
-    def download(self, sheet_config_list: List[ExcelSheetConfig]) -> pd.DataFrame:
+    def download(self, sheet_config_list: List[ExcelSheetConfig]) -> List[pd.DataFrame]:
+        '''
+        ARGS:
+            sheet_config_list: List of Excel sheet config instances
+
+        Returns a list of dataframes for each sheet
+        '''
         data = super().download()
         buffer = io.BytesIO(data)
         return list(map(lambda c: self._read_sheet(buffer, c), sheet_config_list))
