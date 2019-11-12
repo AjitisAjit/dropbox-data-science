@@ -249,7 +249,7 @@ class DropboxCsvFile(Base):
 
     def __init__(self, *args, encoding: str = 'utf8', **kwargs):
         self._encoding = encoding
-        super().__init__(*args, *kwargs)
+        super().__init__(*args, **kwargs)
 
     def download(self, csv_config: CsvConfig) -> pd.DataFrame:
         '''
