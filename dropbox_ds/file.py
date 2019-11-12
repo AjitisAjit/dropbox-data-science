@@ -122,7 +122,7 @@ class Base:
         '''
         if self._content_hash is None:
             self.update_metadata()
-        return self._last_modified
+        return self._content_hash
 
     def exists(self) -> bool:
         '''
