@@ -55,19 +55,31 @@ class CsvConfig:
 # FileFactory
 
 def make_dropbox_file(file: Union[str, dropbox.files.FileMetadata], api_token: Optional[str] = None):
+    '''
+    ARGS:
+        file: A metadata object or filepath
+        api_token: Dropbox API token
+
+    Create an instance of dropbox file
+    '''
     client = dropbox.Dropbox(os.environ.get('DROPBOX_API_TOKEN')) if api_token is None else dropbox.Dropbox(api_token)
-    path = file.path_lower if isinstance(file, dropbox.files.FileMetadata) else file
 
-    excel_file_pattern = r'^.+\.xlsx?$'
-    csv_file_pattern = r'^.+\.csv$'
+    pattern_to_filetype = [
+        (DropboxExcelFile, r'^.+\.xlsx?$'),
+        (DropboxCsvFile,   r'^.+\.csv$'),
+        (DropboxTextFile,  r'^.+$')
+    ]
 
-    if re.match(excel_file_pattern, posixpath.basename(path)):
-        return DropboxExcelFile(path, client)
-        pass
-    elif re.match(csv_file_pattern, posixpath.basename(path)):
-        return DropboxCsvFile(path, client)
+    if isinstance(file, dropbox.files.FileMetadata):
+        path = file.path_lower
+        last_modified = file.client_modified
+        content_hash = file.content_hash
+        instance = next(Class(path, client, last_modified=last_modified, content_hash=content_hash)
+                        for Class, regex in pattern_to_filetype if re.match(regex, path))
     else:
-        return DropboxTextFile(path, client)
+        instance = next(Class(file, client) for Class, regex in pattern_to_filetype if re.match(regex, file))
+
+    return instance
 
 
 class Base:
@@ -88,9 +100,17 @@ class Base:
     Base class for all dropbox file instances
     '''
 
-    def __init__(self, file: str, client: dropbox.Dropbox):
-        self._file = file
+    def __init__(
+            self,
+            path: str,
+            client: dropbox.Dropbox,
+            last_modified: Optional[datetime.datetime] = None,
+            content_hash: Optional[str] = None,
+    ):
+        self._path = path
         self._client = client
+        self._last_modified = last_modified
+        self._content_hash = content_hash
 
     def __eq__(self, other):
         return self.path == other.path
@@ -99,37 +119,45 @@ class Base:
         return self.path < other.path
 
     def __hash__(self):
-        return int(hashlib.md5(self._file.encode('utf8')).hexdigest(), 16)
+        return int(hashlib.md5(self._path.encode('utf8')).hexdigest(), 16)
 
     def __repr__(self):
         return '{class_name}(path={path}, last_modified={last_modified}, content_hash={content_hash})'.format(
             class_name=self.__class__.__name__,
-            path=self.path,
-            last_modified=self.last_modified,
-            content_hash=self.content_hash
+            path=self._path,
+            last_modified=self._last_modified,
+            content_hash=self._content_hash
         )
 
     @property
     def path(self) -> str:
-        return self._file
+        return self._path
 
     @property
     def last_modified(self) -> DateTime:
-        try:
-            return self._get_metadata().client_modified
-        except Exception as err:
-            raise DropboxFileError(err)
+        if self._last_modified is not None:
+            return self._last_modified
+        else:
+            self.update_metadata()
+            return self._last_modified
 
     @property
     def content_hash(self):
-        try:
-            return self._get_metadata().content_hash
-        except Exception as err:
-            raise DropboxFileError(err)
+        if self._content_hash is not None:
+            return self._content_hash
+        else:
+            self.update_metadata()
+            return self._last_modified
 
     def exists(self) -> bool:
+        '''
+        RETURNS:
+            bool value indicating if file exists
+
+        Check whether the file exits on dropbox
+        '''
         try:
-            self._get_metadata()
+            self.update_metadata()
             return True
         except Exception as err:
             if isinstance(err, dropbox.exceptions.ApiError) and\
@@ -140,53 +168,80 @@ class Base:
                 raise DropboxFileError(err)
 
     def upload(self, data: bytes, timestamp: bool = False):
+        '''
+        ARGS:
+            data: bytes to be uploaded to path
+            timestamp: boolean indicating whether to attach timestamp to uploaded file
+
+        Uploads data in bytes to a filepath
+        '''
+        if timestamp is True:
+            filename = datetime.datetime.utcnow().strftime(TIME_FORMAT) + posixpath.basename(self._path)
+            self._path = posixpath.join(posixpath.dirname(self._path), filename)
+
         try:
-            path = posixpath.join(
-                posixpath.dirname(self._file),
-                datetime.datetime.utcnow().strftime(TIME_FORMAT) + posixpath.basename(self._file)
-            ) if timestamp is True else self._file
-            self._client.files_upload(data, path, mode=WriteMode)
+            self._client.files_upload(data, self._path, mode=WriteMode)
+            self.update_metadata()
         except Exception as err:
             raise DropboxFileError(err)
 
     def download(self) -> bytes:
+        '''
+        RETURNS:
+            Data in bytes
+
+        Download data in bytes from path on dropbox
+        '''
         try:
-            link = self._client.files_get_temporary_link(self._file).link
+            link = self._client.files_get_temporary_link(self._path).link
             return requests.get(link).content
         except Exception as err:
             raise DropboxFileError(err)
 
     def move(self, dest: str) -> None:
+        '''
+        ARGS:
+            dest: Destination path as string
+
+        Move file to destination path
+        '''
         try:
-            self._client.files_move_v2(self._file, dest)
-            self._file = dest
+            self._client.files_move_v2(self._path, dest)
+            self.update_metadata(path=dest)
         except Exception as err:
             DropboxFileError(err)
 
     def copy(self, dest: str) -> None:
         try:
-            self._client.files_copy_v2(self._file, dest)
+            self._client.files_copy_v2(self._path, dest)
         except Exception as err:
             DropboxFileError(err)
 
     def delete(self):
         try:
-            self._client.files_delete_v2(self._file)
+            self._client.files_delete_v2(self._path)
         except Exception as err:
             DropboxFileError(err)
 
-    def _get_metadata(self) -> dropbox.files.FileMetadata:
+    def update_metadata(self, path=None):
         try:
-            return self._client.files_get_metadata(self._file)
+            self._path = path if path is not None else self._path
+            metadata = self._client.files_get_metadata(self._path)
+            self._path = metadata.path_lower
+            self._last_modified = metadata.client_modified
+            self._content_hash = metadata.content_hash
         except Exception as err:
             raise DropboxFileError(err)
 
 
 class DropboxTextFile(Base):
+    '''
+    Text file as utf-8 encoding string
+    '''
 
-    def __init__(self, file: str, client: dropbox.Dropbox, encoding: str = 'utf8'):
+    def __init__(self, *args, encoding: str = 'utf8', **kwargs):
         self._encoding = encoding
-        super().__init__(file, client)
+        super().__init__(*args, **kwargs)
 
     def download(self):
         data = super().download()
@@ -194,9 +249,13 @@ class DropboxTextFile(Base):
 
 
 class DropboxCsvFile(Base):
-    def __init__(self, file: str, client: dropbox.Dropbox, encoding: str = 'utf8'):
+    '''
+    Csv file as dataframe with utf-8 encoded text
+    '''
+
+    def __init__(self, *args, encoding: str = 'utf8', **kwargs):
         self._encoding = encoding
-        super().__init__(file, client)
+        super().__init__(*args, *kwargs)
 
     def download(self, csv_config: CsvConfig) -> pd.DataFrame:
         data = super().download()
@@ -216,6 +275,9 @@ class DropboxCsvFile(Base):
 
 
 class DropboxExcelFile(Base):
+    '''
+    Excel file as a list of dataframes
+    '''
 
     def download(self, sheet_config_list: List[ExcelSheetConfig]) -> pd.DataFrame:
         data = super().download()
