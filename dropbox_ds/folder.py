@@ -34,29 +34,48 @@ class DropboxFolder:
 
     @property
     def path(self):
+        '''
+        Lowercase full path to file
+        '''
         return self._folder
 
     @property
     def cursor(self):
+        '''
+        A String cursor representing folder state
+        '''
         return self._cursor
 
     @property
     def flist(self):
+        '''
+        List of files in folder
+        '''
         return self._flist
 
     def create(self) -> None:
+        '''
+        Creates a new folder with given path
+        '''
         try:
             self._client.files_create_folder_v2(self._folder)
         except Exception as err:
             raise DropboxFolderError(err)
 
     def update(self) -> None:
+        '''
+        Updates the state of the given folder. Including
+        cursor and file list
+        '''
         cursor, changes = self._get_changes_from_path() if self._cursor == '' else self._get_changes_from_cursor()
         flist = self._get_files(changes)
         self._flist = flist
         self._cursor = cursor
 
     def delete(self) -> None:
+        '''
+        Deletes the folder with path
+        '''
         try:
             self._client.files_delete_v2(self._folder)
         except Exception as err:

@@ -45,45 +45,11 @@ class CsvConfig:
     index_col_name: Optional[str] = None
 
 
-# Classes
-
 DateTime = NewType('datetime.datetime', object)
-
-File = Union[DropboxExcelFile, DropboxCsvFile, DropboxTextFile]
 
 ReadConfig = Union[List[ExcelSheetConfig], CsvConfig]
 
 WriteMode = dropbox.files.WriteMode('overwrite')  # Files are always overwritten on dropbox
-
-
-# FileFactory
-
-def make_dropbox_file(file: Union[str, dropbox.files.FileMetadata], api_token: Optional[str] = None) -> File:
-    '''
-    ARGS:
-        file: A metadata object or filepath
-        api_token: Dropbox API token
-
-    Create an instance of dropbox file
-    '''
-    client = dropbox.Dropbox(os.environ.get('DROPBOX_API_TOKEN')) if api_token is None else dropbox.Dropbox(api_token)
-
-    pattern_to_filetype = [
-        (DropboxExcelFile, r'^.+\.xlsx?$'),
-        (DropboxCsvFile,   r'^.+\.csv$'),
-        (DropboxTextFile,  r'^.+$')
-    ]
-
-    if isinstance(file, dropbox.files.FileMetadata):
-        path = file.path_lower
-        last_modified = file.client_modified
-        content_hash = file.content_hash
-        instance = next(Class(path, client, last_modified=last_modified, content_hash=content_hash)
-                        for Class, regex in pattern_to_filetype if re.match(regex, path))
-    else:
-        instance = next(Class(file, client) for Class, regex in pattern_to_filetype if re.match(regex, file))
-
-    return instance
 
 
 class Base:
@@ -261,7 +227,7 @@ class Base:
 
 class DropboxTextFile(Base):
     '''
-    Text file as utf-8 encoding string
+    Text file as encoding string desribed by attribute
     '''
 
     def __init__(self, *args, encoding: str = 'utf8', **kwargs):
@@ -334,3 +300,36 @@ class DropboxExcelFile(Base):
 
         df = df.set_index(config.index_col_name) if config.index_col_name else df
         return df
+
+
+# File Factory
+
+File = Union[DropboxExcelFile, DropboxCsvFile, DropboxTextFile]
+
+
+def make_dropbox_file(file: Union[str, dropbox.files.FileMetadata], api_token: Optional[str] = None) -> File:
+    '''
+    ARGS:
+        file: A metadata object or filepath
+        api_token: Dropbox API token
+
+    Create an instance of dropbox file
+    '''
+    client = dropbox.Dropbox(os.environ.get('DROPBOX_API_TOKEN')) if api_token is None else dropbox.Dropbox(api_token)
+
+    pattern_to_filetype = [
+        (DropboxExcelFile, r'^.+\.xlsx?$'),
+        (DropboxCsvFile,   r'^.+\.csv$'),
+        (DropboxTextFile,  r'^.+$')
+    ]
+
+    if isinstance(file, dropbox.files.FileMetadata):
+        path = file.path_lower
+        last_modified = file.client_modified
+        content_hash = file.content_hash
+        instance = next(Class(path, client, last_modified=last_modified, content_hash=content_hash)
+                        for Class, regex in pattern_to_filetype if re.match(regex, path))
+    else:
+        instance = next(Class(file, client) for Class, regex in pattern_to_filetype if re.match(regex, file))
+
+    return instance
