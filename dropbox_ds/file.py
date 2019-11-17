@@ -268,7 +268,8 @@ class DropboxCsvFile(Base):
 
         if config.col_names:
             try:
-                assert sorted(df.columns) == sorted(config.col_names.keys())
+                assert sorted([c.strip() for c in df.columns]) == sorted([c.strip() for c in config.col_names.keys()])
+
             except AssertionError:
                 raise DropboxFileError('Expected cols - {}, recieved - {}'.format(
                     list(df.columns),
@@ -276,7 +277,6 @@ class DropboxCsvFile(Base):
                 ))
 
             df = df.rename(columns=config.col_names)
-
         df = df.set_index(config.index_col_name) if config.index_col_name else df
         return df
 
@@ -303,7 +303,7 @@ class DropboxExcelFile(Base):
 
         if config.col_names:
             try:
-                assert sorted(df.columns) == sorted(config.col_names.keys())
+                assert sorted([c.strip() for c in df.columns]) == sorted([c.strip() for c in config.col_names.keys()])
             except AssertionError:
                 raise DropboxFileError('Expected cols - {}, recieved - {}'.format(
                     list(df.columns),
@@ -311,7 +311,6 @@ class DropboxExcelFile(Base):
                 ))
 
             df = df.rename(columns=config.col_names)
-
         df = df.set_index(config.index_col_name) if config.index_col_name else df
         return df
 
