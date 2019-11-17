@@ -267,7 +267,7 @@ class DropboxCsvFile(Base):
         df = pd.read_csv(buffer, header=config.header, usecols=config.cols)
 
         if config.col_names:
-            assert sorted(df.columns) == sorted(config.col_names.keys())
+            assert sorted([c.strip() for c in df.columns]) == sorted([c.strip() for c in config.col_names.keys()])
             df = df.rename(columns=config.col_names)
 
         df = df.set_index(config.index_col_name) if config.index_col_name else df
@@ -295,7 +295,7 @@ class DropboxExcelFile(Base):
         df = pd.read_excel(buffer, config.sheet_name, header=config.header, usecols=config.cols)
 
         if config.col_names:
-            assert sorted(df.columns) == sorted(config.col_names.keys())
+            assert sorted([c.strip() for c in df.columns]) == sorted([c.strip() for c in config.col_names.keys()])
             df = df.rename(columns=config.col_names)
 
         df = df.set_index(config.index_col_name) if config.index_col_name else df
