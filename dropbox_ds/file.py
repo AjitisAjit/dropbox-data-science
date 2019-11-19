@@ -4,7 +4,7 @@ file.py
 
 File operations on dropbox
 '''
-
+	
 import re
 import os
 import io
@@ -265,11 +265,11 @@ class DropboxCsvFile(Base):
     @staticmethod
     def _read_file(buffer, config: CsvConfig) -> pd.DataFrame:
         df = pd.read_csv(buffer, header=config.header, usecols=config.cols)
+        df.columns = df.columns.map(lambda c: c.strip())
 
         if config.col_names:
             try:
-                assert sorted([c.strip() for c in df.columns]) == sorted([c.strip() for c in config.col_names.keys()])
-
+                assert sorted(df.columns) == sorted(config.col_names.keys())
             except AssertionError:
                 raise DropboxFileError('Expected cols - {}, recieved - {}'.format(
                     list(df.columns),
@@ -300,10 +300,11 @@ class DropboxExcelFile(Base):
     @staticmethod
     def _read_sheet(buffer, config: ExcelSheetConfig) -> pd.DataFrame:
         df = pd.read_excel(buffer, config.sheet_name, header=config.header, usecols=config.cols)
+        df.columns = df.columns.map(lambda c: c.strip())
 
         if config.col_names:
             try:
-                assert sorted([c.strip() for c in df.columns]) == sorted([c.strip() for c in config.col_names.keys()])
+                assert sorted(df.columns) == sorted(config.col_names.keys())
             except AssertionError:
                 raise DropboxFileError('Expected cols - {}, recieved - {}'.format(
                     list(df.columns),
