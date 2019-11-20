@@ -8,7 +8,7 @@ import posixpath
 import pytest
 import pandas as pd
 
-from .. import file
+from .. import dropboxfile
 
 
 # A factory for fixture types
@@ -16,7 +16,7 @@ from .. import file
 
 @pytest.fixture(scope='function')
 def csv_config():
-    return file.CsvConfig(
+    return dropboxfile.CsvConfig(
         header=0,
         cols=list(range(4)),
         col_names={'Unnamed: 0': 'index', 'a': 'a', 'b': 'b', 'c': 'c'},  # Same as original
@@ -27,7 +27,7 @@ def csv_config():
 @pytest.fixture(scope='function')
 def excel_config():
     return [
-        file.ExcelSheetConfig(
+        dropboxfile.ExcelSheetConfig(
             sheet_name='sheet_1',
             header=0,
             index_col_name='index',
@@ -35,7 +35,7 @@ def excel_config():
             col_names={'Unnamed: 0': 'index', 'a': 'a', 'b': 'b', 'c': 'c'},
 
         ),
-        file.ExcelSheetConfig(
+        dropboxfile.ExcelSheetConfig(
             sheet_name='sheet_2',
             header=0,
             cols=list(range(4)),
@@ -102,7 +102,7 @@ class TestDropboxFile:
         text_file.upload(text_payload)
         path = text_file.path
         new_path = posixpath.join(posixpath.dirname(path), 'test_2')
-        new_file = file.make_dropbox_file(new_path, api_token)
+        new_file = dropboxfile.make_dropbox_file(new_path, api_token)
 
         text_file.copy(new_path)
         assert text_file.exists()

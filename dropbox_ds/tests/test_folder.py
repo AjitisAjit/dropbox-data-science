@@ -3,7 +3,7 @@ Test dropbox folder operations
 '''
 
 import posixpath
-from .. import file, folder
+from .. import dropboxfile, dropboxfolder
 
 
 class TestUpdateFolder:
@@ -23,9 +23,9 @@ class TestUpdateFolder:
         assert c1 != c2
         assert flist_1 == []
         assert sorted(list(map(lambda f: f.__class__.__name__, flist_2))) == sorted([
-            file.DropboxTextFile.__name__,
-            file.DropboxCsvFile.__name__,
-            file.DropboxExcelFile.__name__
+            dropboxfile.DropboxTextFile.__name__,
+            dropboxfile.DropboxCsvFile.__name__,
+            dropboxfile.DropboxExcelFile.__name__
         ])
 
     def test_move_files(self, folder_instance, dropbox_file):
@@ -37,7 +37,7 @@ class TestUpdateFolder:
         # Move a file
         folder_path = folder_instance.path
         new_folder_path = posixpath.join(folder_path, 'old')
-        new_folder = folder.DropboxFolder(new_folder_path)
+        new_folder = dropboxfolder.DropboxFolder(new_folder_path)
         new_folder.create()
 
         # Pick a random file and move it there

@@ -10,7 +10,7 @@ from typing import Optional, List, Tuple
 
 import dropbox
 
-from .file import make_dropbox_file
+from .dropboxfile import make_dropbox_file
 from .exceptions import DropboxFolderError
 
 

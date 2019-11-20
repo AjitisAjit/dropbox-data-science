@@ -8,7 +8,7 @@ from typing import Callable, Dict
 import dropbox
 
 import pandas as pd
-from .. import folder, file
+from .. import dropboxfolder, dropboxfile
 
 
 @pytest.fixture(scope='session')
@@ -24,7 +24,7 @@ def client(api_token):
 @pytest.fixture(scope='function')
 def folder_instance(api_token):
     dirpath = '/ai/test'
-    folder_obj = folder.DropboxFolder(dirpath, api_token)
+    folder_obj = dropboxfolder.DropboxFolder(dirpath, api_token)
     folder_obj.create()
     yield folder_obj
     folder_obj.delete()
@@ -37,13 +37,13 @@ def dropbox_file(folder_instance, api_token) -> Callable:
 
     def make_dropbox_file(filename) -> Dict:
         path = posixpath.join(folder_instance.path, filename)
-        file_instance = file.make_dropbox_file(path)
+        file_instance = dropboxfile.make_dropbox_file(path)
 
-        if isinstance(file_instance, file.DropboxTextFile):
+        if isinstance(file_instance, dropboxfile.DropboxTextFile):
             original_data = 'This is text data'
             bytes_data = bytes(original_data, encoding='utf8')
 
-        elif isinstance(file_instance, file.DropboxCsvFile):
+        elif isinstance(file_instance, dropboxfile.DropboxCsvFile):
             original_data = pd.DataFrame({
                 'a': [1, 2, 3],
                 'b': [4, 5, 6],
@@ -54,7 +54,7 @@ def dropbox_file(folder_instance, api_token) -> Callable:
             original_data.to_csv(io_instance)
             bytes_data = bytes(io_instance.getvalue(), encoding='utf8')
 
-        elif isinstance(file_instance, file.DropboxExcelFile):
+        elif isinstance(file_instance, dropboxfile.DropboxExcelFile):
             sheet_1 = pd.DataFrame({
                 'a': [1, 2, 3],
                 'b': [4, 5, 6],
