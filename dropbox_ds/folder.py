@@ -4,6 +4,7 @@ state
 '''
 
 import os
+import hashlib
 import posixpath
 from typing import Optional, List, Tuple
 
@@ -28,16 +29,28 @@ class DropboxFolder:
     def __init__(self, folder: str, api_token: Optional[str] = None):
         self._api_token = api_token if api_token is not None else os.environ.get('DROPBOX_API_TOKEN')
         self._client = dropbox.Dropbox(self._api_token)
-        self._folder = folder.path_lower if isinstance(folder, dropbox.files.FileMetadata) else folder
+        self._path = folder.path_lower if isinstance(folder, dropbox.files.FileMetadata) else folder
         self._cursor = ''
         self._flist = []
+
+    def __hash__(self):
+        return int(hashlib.md5(self._path.encode('utf8')).hexdigest(), 16)
+
+    def __eq__(self, other):
+        return self._path == other.path
+
+    def __repr__(self):
+        return 'DropboxFolder({name}: [{flist}])'.format(
+            name=self._path,
+            flist=','.join([str(f) for f in self._flist])
+        )
 
     @property
     def path(self):
         '''
         Lowercase full path to file
         '''
-        return self._folder
+        return self._path
 
     @property
     def cursor(self):
@@ -58,7 +71,7 @@ class DropboxFolder:
         Creates a new folder with given path
         '''
         try:
-            self._client.files_create_folder_v2(self._folder)
+            self._client.files_create_folder_v2(self._path)
         except Exception as err:
             raise DropboxFolderError(err)
 
@@ -77,7 +90,7 @@ class DropboxFolder:
         Deletes the folder with path
         '''
         try:
-            self._client.files_delete_v2(self._folder)
+            self._client.files_delete_v2(self._path)
         except Exception as err:
             raise DropboxFolderError(err)
 
@@ -90,7 +103,7 @@ class DropboxFolder:
 
     def _get_changes_from_path(self) -> Tuple[str, List]:
         try:
-            contents = self._client.files_list_folder(self._folder)
+            contents = self._client.files_list_folder(self._path)
             return contents.cursor, contents.entries
         except Exception as err:
             raise DropboxFolderError(err)
@@ -99,6 +112,6 @@ class DropboxFolder:
         # Folders and Moved or deleted files are ignored. Files within subfolders are also ignored
         files = [f for f in folder_contents if isinstance(f, dropbox.files.FileMetadata)]
         deleted_paths = [f.path_lower for f in folder_contents if isinstance(f, dropbox.files.DeletedMetadata)]
-        file_changes = [make_dropbox_file(f, self._api_token) for f in files if self._folder == posixpath.dirname(f.path_lower)]
+        file_changes = [make_dropbox_file(f, self._api_token) for f in files if self._path == posixpath.dirname(f.path_lower)]
         files_left = [f for f in self._flist if f.path not in deleted_paths and posixpath.dirname(f.path) == self.path]
         return list(set(files_left).union(file_changes))
