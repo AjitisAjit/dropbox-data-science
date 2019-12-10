@@ -8,7 +8,7 @@ with open('README.md', 'r') as f:
 
 
 setuptools.setup(
-    name='dropbox-ds-AJIT-NATH',
+    name='dropbox-ds',
     version='0.5.7',
     author='Ajit Nath',
     description='Provides data science utilities for dropbox',
