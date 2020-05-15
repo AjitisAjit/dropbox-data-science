@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "dropbox_ds"
+version = "0.1.0"
+description = ""
+authors = ["Ajit Nath <ajit.nath@organicgrowthfunds.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+dropbox = "^10.1.2"
+python-dotenv = "^0.13.0"
+pandas = "^1.0.3"
+xlrd = "^1.2.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.4.2"
+flake8 = "^3.8.1"
+coverage = "^5.1"
+xlsxwriter = "^1.2.8"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
