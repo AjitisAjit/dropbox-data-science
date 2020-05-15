@@ -4,7 +4,7 @@ file.py
 
 File operations on dropbox
 '''
-	
+
 import re
 import os
 import io
@@ -49,7 +49,8 @@ DateTime = NewType('datetime.datetime', object)
 
 ReadConfig = Union[List[ExcelSheetConfig], CsvConfig]
 
-WriteMode = dropbox.files.WriteMode('overwrite')  # Files are always overwritten on dropbox
+# Files are always overwritten on dropbox
+WriteMode = dropbox.files.WriteMode('overwrite')
 
 
 class Base:
@@ -151,8 +152,10 @@ class Base:
         Uploads data in bytes to a filepath
         '''
         if timestamp is True:
-            filename = datetime.datetime.utcnow().strftime(TIME_FORMAT) + posixpath.basename(self._path)
-            self._path = posixpath.join(posixpath.dirname(self._path), filename)
+            filename = datetime.datetime.utcnow().strftime(
+                TIME_FORMAT) + posixpath.basename(self._path)
+            self._path = posixpath.join(
+                posixpath.dirname(self._path), filename)
 
         try:
             self._client.files_upload(data, self._path, mode=WriteMode)
@@ -277,7 +280,8 @@ class DropboxCsvFile(Base):
                 ))
 
             df = df.rename(columns=config.col_names)
-        df = df.set_index(config.index_col_name) if config.index_col_name else df
+        df = df.set_index(
+            config.index_col_name) if config.index_col_name else df
         return df
 
 
@@ -299,7 +303,8 @@ class DropboxExcelFile(Base):
 
     @staticmethod
     def _read_sheet(buffer, config: ExcelSheetConfig) -> pd.DataFrame:
-        df = pd.read_excel(buffer, config.sheet_name, header=config.header, usecols=config.cols)
+        df = pd.read_excel(buffer, config.sheet_name,
+                           header=config.header, usecols=config.cols)
         df.columns = df.columns.map(lambda c: c.strip())
 
         if config.col_names:
@@ -312,7 +317,8 @@ class DropboxExcelFile(Base):
                 ))
 
             df = df.rename(columns=config.col_names)
-        df = df.set_index(config.index_col_name) if config.index_col_name else df
+        df = df.set_index(
+            config.index_col_name) if config.index_col_name else df
         return df
 
 
@@ -329,7 +335,8 @@ def make_dropbox_file(file: Union[str, dropbox.files.FileMetadata], api_token: O
 
     Create an instance of dropbox file
     '''
-    client = dropbox.Dropbox(os.environ.get('DROPBOX_API_TOKEN')) if api_token is None else dropbox.Dropbox(api_token)
+    client = dropbox.Dropbox(os.environ.get(
+        'DROPBOX_API_TOKEN')) if api_token is None else dropbox.Dropbox(api_token)
 
     pattern_to_filetype = [
         (DropboxExcelFile, r'^.+\.xlsx?$'),
@@ -344,6 +351,7 @@ def make_dropbox_file(file: Union[str, dropbox.files.FileMetadata], api_token: O
         instance = next(Class(path, client, last_modified=last_modified, content_hash=content_hash)
                         for Class, regex in pattern_to_filetype if re.match(regex, path))
     else:
-        instance = next(Class(file, client) for Class, regex in pattern_to_filetype if re.match(regex, file))
+        instance = next(Class(file, client) for Class,
+                        regex in pattern_to_filetype if re.match(regex, file))
 
     return instance

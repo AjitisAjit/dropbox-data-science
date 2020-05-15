@@ -24,7 +24,8 @@ class DropboxMonitor():
     '''
 
     def __init__(self, path: str, emit_function: Callable, logger: Optional[logging.Logger] = None):
-        self._logger = logging.getLogger('dropboxutils') if logger is None else logger
+        self._logger = logging.getLogger(
+            'dropboxutils') if logger is None else logger
         self._folder = folder.DropboxFolder(path)
         self._emitter = emit_function
 

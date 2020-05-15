@@ -6,7 +6,6 @@ import datetime
 import posixpath
 
 import pytest
-import pandas as pd
 
 from .. import dropboxfile
 
@@ -19,7 +18,8 @@ def csv_config():
     return dropboxfile.CsvConfig(
         header=0,
         cols=list(range(4)),
-        col_names={'Unnamed: 0': 'index', 'a': 'a', 'b': 'b', 'c': 'c'},  # Same as original
+        col_names={'Unnamed: 0': 'index', 'a': 'a',
+                   'b': 'b', 'c': 'c'},  # Same as original
         index_col_name='index',
     )
 
@@ -77,7 +77,8 @@ class TestDropboxFile:
 
         excel_downloaded = excel_file.download(excel_config)
         first, second = excel_downloaded
-        merged_df = first.merge(second, left_index=True, right_index=True, how='outer')
+        merged_df = first.merge(second, left_index=True,
+                                right_index=True, how='outer')
 
         assert merged_df.equals(excel_original)
         assert text_downloaded == text_original

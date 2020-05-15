@@ -27,9 +27,11 @@ class DropboxFolder:
     '''
 
     def __init__(self, folder: str, api_token: Optional[str] = None):
-        self._api_token = api_token if api_token is not None else os.environ.get('DROPBOX_API_TOKEN')
+        self._api_token = api_token if api_token is not None else os.environ.get(
+            'DROPBOX_API_TOKEN')
         self._client = dropbox.Dropbox(self._api_token)
-        self._path = folder.path_lower if isinstance(folder, dropbox.files.FileMetadata) else folder
+        self._path = folder.path_lower if isinstance(
+            folder, dropbox.files.FileMetadata) else folder
         self._cursor = ''
         self._flist = []
 
@@ -80,7 +82,8 @@ class DropboxFolder:
         Updates the state of the given folder. Including
         cursor and file list
         '''
-        cursor, changes = self._get_changes_from_path() if self._cursor == '' else self._get_changes_from_cursor()
+        cursor, changes = self._get_changes_from_path(
+        ) if self._cursor == '' else self._get_changes_from_cursor()
         flist = self._get_files(changes)
         self._flist = flist
         self._cursor = cursor
@@ -97,21 +100,63 @@ class DropboxFolder:
     def _get_changes_from_cursor(self) -> Tuple[str, List]:
         try:
             result = self._client.files_list_folder_continue(self._cursor)
-            return result.cursor, result.entries
         except Exception as err:
             raise DropboxFolderError(err)
+
+        flist = []
+
+        def process_entries(entries):
+            for e in entries:
+                flist.append(e)
+
+        process_entries(result.entries)
+
+        while result.has_more:
+            try:
+                result = self._client.files_list_folder_continue(result.cursor)
+            except Exception as err:
+                raise DropboxFolderError(err)
+
+            process_entries(result.entries)
+
+        return result.cursor, flist
 
     def _get_changes_from_path(self) -> Tuple[str, List]:
         try:
-            contents = self._client.files_list_folder(self._path)
-            return contents.cursor, contents.entries
+            result = self._client.files_list_folder(self._path)
         except Exception as err:
             raise DropboxFolderError(err)
 
-    def _get_files(self, folder_contents: List) -> List:
+        flist = []
+
+        def process_entries(entries):
+            for e in entries:
+                flist.append(e)
+
+        process_entries(result.entries)
+
+        while result.has_more:
+            try:
+                result = self._client.files_list_folder_continue(result.cursor)
+            except Exception as err:
+                raise DropboxFolderError(err)
+
+            process_entries(result.entries)
+
+        return result.cursor, flist
+
+    def _get_files(self, folder_content: List) -> List:
         # Folders and Moved or deleted files are ignored. Files within subfolders are also ignored
-        files = [f for f in folder_contents if isinstance(f, dropbox.files.FileMetadata)]
-        deleted_paths = [f.path_lower for f in folder_contents if isinstance(f, dropbox.files.DeletedMetadata)]
-        file_changes = [make_dropbox_file(f, self._api_token) for f in files if self._path == posixpath.dirname(f.path_lower)]
-        files_left = [f for f in self._flist if f.path not in deleted_paths and posixpath.dirname(f.path) == self.path]
-        return list(set(files_left).union(file_changes))
+        files = [f for f in folder_content if isinstance(f, dropbox.files.FileMetadata)]
+
+        deleted_paths = [f.path_lower for
+                         f in folder_content if isinstance(f, dropbox.files.DeletedMetadata)]
+
+        files_added_or_modified = [make_dropbox_file(f, self._api_token) for
+                                   f in files if self._path == posixpath.dirname(f.path_lower)]
+        files_unchanged = [f for
+                           f in self._flist
+                           if f.path not in deleted_paths and
+                           posixpath.dirname(f.path) == self.path]
+
+        return list(set(files_unchanged).union(files_added_or_modified))

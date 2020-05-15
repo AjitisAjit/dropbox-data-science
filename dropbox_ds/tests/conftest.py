@@ -72,7 +72,8 @@ def dropbox_file(folder_instance, api_token) -> Callable:
                 sheet_1.to_excel(writer, sheet_name='sheet_1')
                 sheet_2.to_excel(writer, sheet_name='sheet_2')
 
-            original_data = sheet_1.merge(sheet_2, how='outer', left_index=True, right_index=True)
+            original_data = sheet_1.merge(
+                sheet_2, how='outer', left_index=True, right_index=True)
             bytes_data = io_instance.getvalue()
 
         return {'file': file_instance, 'data': original_data, 'payload': bytes_data}

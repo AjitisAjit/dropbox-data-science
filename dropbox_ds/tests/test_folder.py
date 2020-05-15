@@ -43,7 +43,8 @@ class TestUpdateFolder:
         # Pick a random file and move it there
         first, *rest = flist_1
         first_path = first.path
-        new_path = posixpath.join(new_folder_path, posixpath.basename(first_path))
+        new_path = posixpath.join(
+            new_folder_path, posixpath.basename(first_path))
         first.move(new_path)
 
         folder_instance.update()
